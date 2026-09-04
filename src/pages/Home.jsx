@@ -1,38 +1,26 @@
-function Home() {
+import { useNavigate } from "react-router-dom";
+
+export default function Home() {
+  const navigate = useNavigate();
+
   const handleLogin = () => {
-    window.location.href = `${import.meta.env.VITE_API_URL}/auth/google`;
+    // TODO: replace with real Google OAuth redirect once backend confirms flow
+    navigate("/instructions");
   };
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center px-6">
-      <div className="text-center mb-8">
-        <img
-          src="/ccs-logo.png"
-          alt="CCS logo"
-          className="w-20 h-20 mx-auto mb-4"
-        />
-        <p className="text-sm tracking-wide text-gray-500 mb-2">
-          Creative Computing Society
-        </p>
-        <h1 className="font-display text-5xl font-bold text-[#0d1117]">
-          Quiz <span className="text-[#2cbcb6]">Portal</span>
+    <div className="min-h-screen flex items-center justify-center p-6">
+      <div className="card max-w-3xl w-full p-8 md:p-12 text-center shadow-xs">
+        <h1 className="font-display text-3xl md:text-4xl font-bold mb-4 text-[var(--ink)]">
+          CCS Quiz Portal
         </h1>
-      </div>
-
-      <div className="card p-8 max-w-sm w-full text-center">
-        <p className="text-gray-600 mb-6 text-sm">
-          Sign in with your college Google account to begin.
+        <p className="text-gray-600 mb-8 text-base md:text-lg">
+          Welcome to the CCS Quiz Portal. Please sign in to begin your assessment.
         </p>
-        <button onClick={handleLogin} className="btn-primary w-full">
+        <button onClick={handleLogin} className="btn-primary cursor-pointer">
           Sign in with Google
         </button>
       </div>
-
-      <a href="/instructions" className="text-xs text-gray-400 mt-6 underline">
-        (dev only) skip login →
-      </a>
     </div>
   );
 }
-
-export default Home;

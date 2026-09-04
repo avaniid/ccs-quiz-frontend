@@ -13,7 +13,7 @@
   --ink: #0d1117;
   --blue: #2563eb;
   --blue-hover: #1d4ed8;
-  --cyan: #2cbcb6;
+  --cyan: #2cbcb6;;
   --border: #d0d7de;
 }
 
@@ -51,4 +51,3 @@ body {
   border: 1px solid var(--border);
   border-radius: 10px;
 }
-

@@ -1,230 +1,225 @@
-import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import Webcam from "react-webcam";
-import api from "../api/client";
-import useAntiCheat from "../hooks/useAntiCheat";
+import { useQuiz } from "../context/QuizContext";
 
-// 🔧 TEMPORARY MOCK DATA — delete this whole block once the real backend is reachable
-const MOCK_QUESTIONS = [
-  {
-    questionID: [1, 2, 3, 4, 5, 6, 7],
-    question: "What does CSS stand for?",
-    image: "",
-    options: [
-      { id: [10, 0, 0, 0, 0, 0, 1], value: "Cascading Style Sheets" },
-      { id: [10, 0, 0, 0, 0, 0, 2], value: "Computer Style Sheets" },
-      { id: [10, 0, 0, 0, 0, 0, 3], value: "Creative Style Sheets" },
-    ],
-  },
-  {
-    questionID: [1, 2, 3, 4, 5, 6, 8],
-    question: "Which hook lets you run code after a component mounts?",
-    image: "",
-    options: [
-      { id: [11, 0, 0, 0, 0, 0, 1], value: "useState" },
-      { id: [11, 0, 0, 0, 0, 0, 2], value: "useEffect" },
-      { id: [11, 0, 0, 0, 0, 0, 3], value: "useRef" },
-    ],
-  },
-  {
-    questionID: [1, 2, 3, 4, 5, 6, 9],
-    question: "What HTTP method is typically used to submit a form?",
-    image: "",
-    options: [
-      { id: [12, 0, 0, 0, 0, 0, 1], value: "GET" },
-      { id: [12, 0, 0, 0, 0, 0, 2], value: "POST" },
-      { id: [12, 0, 0, 0, 0, 0, 3], value: "DELETE" },
-    ],
-  },
-];
-// 🔧 END MOCK DATA
-
-function Quiz() {
+export default function Quiz() {
   const navigate = useNavigate();
-  const flagsRaised = useAntiCheat();
-  const webcamRef = useRef(null);
-  const snapshotRef = useRef(null);
+  const {
+    questions,
+    answers,
+    currentIndex,
+    markedForReview,
+    loading,
+    answerQuestion,
+    clearResponse,
+    toggleMarkForReview,
+    goToQuestion,
+    nextQuestion,
+    getQuestionStatus,
+  } = useQuiz();
 
-  const [questions, setQuestions] = useState([]);
-  const [answers, setAnswers] = useState({});
-  const [secondsLeft, setSecondsLeft] = useState(null);
-  const [loading, setLoading] = useState(true);
+  const handleSubmit = () => {
+    navigate("/submitted");
+  };
 
-  useEffect(() => {
-    async function init() {
-      // 🔧 MOCK MODE — comment this block back out once backend is live
-      setQuestions(MOCK_QUESTIONS);
-      setSecondsLeft(2 * 60); // 2 minutes, so you can actually watch it hit zero while testing
-      setLoading(false);
-      return;
-      // 🔧 END MOCK MODE
-
-      /* 🔧 REAL API CALLS — uncomment this whole block once backend is reachable, and delete the mock block above
-      try {
-        const submittedRes = await api.post("/quiz/submitted");
-        if (submittedRes.status === 200) {
-          navigate("/submitted");
-          return;
-        }
-      } catch (err) {}
-
-      try {
-        const shiftsRes = await api.get("/quiz/shifts");
-        setSecondsLeft(shiftsRes.data.test_duration * 60);
-
-        const questionsRes = await api.get("/quiz/get");
-        setQuestions(questionsRes.data.questions);
-      } catch (err) {
-        console.error("Failed to load quiz", err);
-        navigate("/");
-        return;
-      }
-
-      setLoading(false);
-      */
-    }
-    init();
-  }, [navigate]);
-
-  useEffect(() => {
-    if (!loading && webcamRef.current) {
-      const t = setTimeout(() => {
-        snapshotRef.current = webcamRef.current.getScreenshot();
-      }, 1500);
-      return () => clearTimeout(t);
-    }
-  }, [loading]);
-
-  useEffect(() => {
-    if (secondsLeft === null) return;
-    if (secondsLeft <= 0) {
-      handleSubmit();
-      return;
-    }
-    const t = setTimeout(() => setSecondsLeft((s) => s - 1), 1000);
-    return () => clearTimeout(t);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [secondsLeft]);
-
-  useEffect(() => {
-    const interval = setInterval(() => {
-      if (flagsRaised.current >= 5) {
-        clearInterval(interval);
-        handleSubmit(true);
-      }
-    }, 1000);
-    return () => clearInterval(interval);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  function selectAnswer(questionIDArray, optionIDArray) {
-    const key = JSON.stringify(questionIDArray);
-    setAnswers((prev) => ({ ...prev, [key]: optionIDArray }));
-  }
-
-  async function handleSubmit(disqualified = false) {
-    const responses = questions.map((q) => {
-      const key = JSON.stringify(q.questionID);
-      return {
-        questionID: q.questionID,
-        quizAnswers: answers[key] || [],
-      };
-    });
-
-    const payload = {
-      snapshot: snapshotRef.current || "",
-      quiz_responses: responses,
-      flagsRaised: flagsRaised.current,
-    };
-
-    // 🔧 MOCK MODE — just log it and navigate, don't actually call the backend yet
-    console.log("Would submit:", payload);
-    navigate(disqualified ? "/disqualified" : "/submitted");
-    return;
-    // 🔧 END MOCK MODE — delete the 3 lines above and uncomment below once backend is live
-
-    /*
-    try {
-      await api.post("/quiz/submit", payload);
-      navigate(disqualified ? "/disqualified" : "/submitted");
-    } catch (err) {
-      console.error("Submit failed", err);
-    }
-    */
-  }
-
-  if (loading) {
+  if (loading || questions.length === 0) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-900 text-white">
-        Loading quiz...
+      <div className="min-h-screen flex items-center justify-center p-6">
+        <div className="card max-w-md w-full p-8 text-center shadow-xs">
+          <h2 className="font-display text-xl font-bold mb-2 text-[var(--ink)]">
+            Loading Quiz...
+          </h2>
+          <p className="text-gray-500 text-sm">Please wait while questions are loaded.</p>
+        </div>
       </div>
     );
   }
 
-  const minutes = String(Math.floor(secondsLeft / 60)).padStart(2, "0");
-  const seconds = String(secondsLeft % 60).padStart(2, "0");
+  const currentQuestion = questions[currentIndex] || questions[0];
+  const currentAnswer = answers[currentQuestion.id];
+
+  const getPaletteButtonClass = (status, isCurrent) => {
+    let base = "";
+    switch (status) {
+      case "answered":
+        base = "bg-[var(--blue)] text-white";
+        break;
+      case "marked":
+        base = "bg-[var(--cyan)] text-white";
+        break;
+      case "not-answered":
+        base = "bg-red-100 border border-red-400 text-red-700";
+        break;
+      case "not-visited":
+      default:
+        base = "bg-gray-100 border border-[var(--border)] text-gray-500";
+        break;
+    }
+    return `${base} ${isCurrent ? "ring-2 ring-[var(--blue)]" : ""}`;
+  };
 
   return (
-    <div className="min-h-screen bg-gray-900 text-white p-6">
-      <Webcam
-        ref={webcamRef}
-        audio={false}
-        screenshotFormat="image/jpeg"
-        className="hidden"
-      />
+    <div className="min-h-screen p-6 md:p-8">
+      <div className="max-w-7xl mx-auto">
+        {/* Header */}
+        <div className="flex items-center justify-between mb-6">
+          <h1 className="font-display text-2xl md:text-3xl font-bold text-[var(--ink)]">
+            Quiz Assessment
+          </h1>
+          <button onClick={handleSubmit} className="btn-primary cursor-pointer text-sm">
+            Submit Test
+          </button>
+        </div>
 
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-xl font-bold">Quiz</h1>
-        <span className="bg-red-600 px-4 py-2 rounded font-mono">
-          {minutes}:{seconds}
-        </span>
-      </div>
+        {/* Content Layout */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          {/* Main Question Display */}
+          <div className="lg:col-span-2">
+            <div className="card p-6 md:p-8 shadow-xs">
+              {/* Question Meta */}
+              <div className="flex items-center justify-between pb-4 mb-6 border-b border-[var(--border)]">
+                <span className="font-semibold text-sm text-gray-500 uppercase tracking-wider">
+                  Question {currentIndex + 1} of {questions.length}
+                </span>
+                {markedForReview.has(currentQuestion.id) && (
+                  <span className="text-xs font-semibold px-2.5 py-1 rounded bg-[var(--cyan)] text-white">
+                    Marked for Review
+                  </span>
+                )}
+              </div>
 
-      <div className="space-y-8 max-w-2xl mx-auto">
-        {questions.map((q, idx) => {
-          const key = JSON.stringify(q.questionID);
-          return (
-            <div key={key} className="bg-gray-800 p-4 rounded-lg">
-              <p className="font-semibold mb-3">
-                {idx + 1}. {q.question}
+              {/* Question Text */}
+              <p className="font-display text-lg md:text-xl font-semibold mb-6 text-[var(--ink)]">
+                {currentQuestion.text || currentQuestion.question}
               </p>
-              {q.image && (
-                <img src={q.image} alt="" className="mb-3 rounded max-h-60" />
-              )}
-              <div className="space-y-2">
-                {q.options.map((opt) => {
-                  const optKey = JSON.stringify(opt.id);
-                  const isSelected = JSON.stringify(answers[key]) === optKey;
+
+              {/* Options */}
+              <div className="space-y-3 mb-8">
+                {(currentQuestion.options || []).map((opt, idx) => {
+                  const optValue = typeof opt === "object" ? opt.value : opt;
+                  const isSelected = currentAnswer === optValue;
+
                   return (
                     <button
-                      key={optKey}
-                      onClick={() => selectAnswer(q.questionID, opt.id)}
-                      className={`block w-full text-left px-4 py-2 rounded border ${
+                      key={idx}
+                      type="button"
+                      onClick={() => answerQuestion(currentQuestion.id, optValue)}
+                      className={`w-full text-left p-4 rounded-lg border transition-colors cursor-pointer flex items-center gap-3 ${
                         isSelected
-                          ? "bg-blue-600 border-blue-400"
-                          : "bg-gray-700 border-gray-600 hover:bg-gray-600"
+                          ? "border-[var(--blue)] bg-blue-50/50 text-[var(--ink)] font-medium"
+                          : "border-[var(--border)] bg-white hover:bg-[var(--bg)] text-[var(--ink)]"
                       }`}
                     >
-                      {opt.value}
+                      <span
+                        className={`w-5 h-5 rounded-full border flex items-center justify-center text-xs shrink-0 ${
+                          isSelected
+                            ? "border-[var(--blue)] bg-[var(--blue)] text-white"
+                            : "border-gray-400 bg-white"
+                        }`}
+                      >
+                        {isSelected && (
+                          <span className="w-2 h-2 rounded-full bg-white" />
+                        )}
+                      </span>
+                      <span>{optValue}</span>
                     </button>
                   );
                 })}
               </div>
-            </div>
-          );
-        })}
-      </div>
 
-      <div className="max-w-2xl mx-auto mt-8">
-        <button
-          onClick={() => handleSubmit(false)}
-          className="w-full bg-green-600 hover:bg-green-700 py-3 rounded-lg font-semibold"
-        >
-          Submit Quiz
-        </button>
+              {/* Action Buttons */}
+              <div className="flex flex-wrap items-center justify-between gap-3 pt-6 border-t border-[var(--border)]">
+                <div className="flex flex-wrap items-center gap-3">
+                  <button
+                    type="button"
+                    onClick={() => clearResponse(currentQuestion.id)}
+                    className="bg-white border border-[var(--border)] text-[var(--ink)] font-semibold rounded-[8px] px-7 py-3 hover:bg-[var(--bg)] transition-colors cursor-pointer"
+                  >
+                    Clear Response
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      toggleMarkForReview(currentQuestion.id);
+                      nextQuestion();
+                    }}
+                    className="bg-white border border-[var(--border)] text-[var(--ink)] font-semibold rounded-[8px] px-7 py-3 hover:bg-[var(--bg)] transition-colors cursor-pointer"
+                  >
+                    Mark for Review & Next
+                  </button>
+                </div>
+                <button
+                  type="button"
+                  onClick={nextQuestion}
+                  className="btn-primary cursor-pointer"
+                >
+                  Save & Next
+                </button>
+              </div>
+            </div>
+          </div>
+
+          {/* Palette Sidebar */}
+          <div className="space-y-6">
+            <div className="card p-6 shadow-xs">
+              <h2 className="font-display text-lg font-bold text-[var(--ink)] mb-4">
+                Question Palette
+              </h2>
+
+              {/* Legend */}
+              <div className="grid grid-cols-2 gap-2 text-xs mb-6 p-3 rounded-lg bg-[var(--bg)] border border-[var(--border)]">
+                <div className="flex items-center gap-2">
+                  <span className="w-3.5 h-3.5 rounded bg-[var(--blue)] inline-block shrink-0" />
+                  <span className="text-gray-600">Answered</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="w-3.5 h-3.5 rounded bg-[var(--cyan)] inline-block shrink-0" />
+                  <span className="text-gray-600">Marked</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="w-3.5 h-3.5 rounded bg-red-100 border border-red-400 inline-block shrink-0" />
+                  <span className="text-gray-600">Not Answered</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="w-3.5 h-3.5 rounded bg-gray-100 border border-[var(--border)] inline-block shrink-0" />
+                  <span className="text-gray-600">Not Visited</span>
+                </div>
+              </div>
+
+              {/* Grid of Palette buttons */}
+              <div className="grid grid-cols-5 gap-2.5">
+                {questions.map((q, idx) => {
+                  const status = getQuestionStatus(q.id);
+                  const isCurrent = currentIndex === idx;
+                  return (
+                    <button
+                      key={q.id || idx}
+                      type="button"
+                      onClick={() => goToQuestion(idx)}
+                      className={`w-10 h-10 rounded-lg flex items-center justify-center font-semibold text-sm cursor-pointer transition-all ${getPaletteButtonClass(
+                        status,
+                        isCurrent
+                      )}`}
+                    >
+                      {idx + 1}
+                    </button>
+                  );
+                })}
+              </div>
+
+              {/* Sidebar Submit Button */}
+              <div className="mt-8 pt-6 border-t border-[var(--border)]">
+                <button
+                  type="button"
+                  onClick={handleSubmit}
+                  className="btn-primary w-full cursor-pointer"
+                >
+                  Submit Test
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   );
 }
-
-export default Quiz;
