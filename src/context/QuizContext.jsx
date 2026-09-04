@@ -1,6 +1,8 @@
 import { createContext, useContext, useState, useEffect, useCallback, useRef } from "react";
 import { fetchQuestions } from "../services/api";
 
+export const EXAM_DURATION_SECONDS = 1800;
+
 const QuizContext = createContext(null);
 
 export function QuizProvider({ children }) {
@@ -11,6 +13,8 @@ export function QuizProvider({ children }) {
   const [visited, setVisited] = useState(new Set());
   const [warningCount, setWarningCount] = useState(0);
   const [loading, setLoading] = useState(true);
+  const [timeRemaining, setTimeRemaining] = useState(EXAM_DURATION_SECONDS);
+  const [submitted, setSubmitted] = useState(false);
 
   const warningCountRef = useRef(0);
 
@@ -93,6 +97,10 @@ export function QuizProvider({ children }) {
     return warningCountRef.current;
   }, []);
 
+  const markSubmitted = useCallback(() => {
+    setSubmitted(true);
+  }, []);
+
   const getQuestionStatus = useCallback((questionId) => {
     if (markedForReview.has(questionId)) {
       return "marked";
@@ -114,6 +122,10 @@ export function QuizProvider({ children }) {
     visited,
     warningCount,
     loading,
+    timeRemaining,
+    setTimeRemaining,
+    submitted,
+    markSubmitted,
     answerQuestion,
     clearResponse,
     toggleMarkForReview,
@@ -133,4 +145,3 @@ export function useQuiz() {
   }
   return context;
 }
-

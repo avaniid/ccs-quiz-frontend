@@ -1,5 +1,11 @@
+import { useState, useCallback, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { useQuiz } from "../context/QuizContext";
+import { submitQuiz as apiSubmitQuiz } from "../services/api";
+import useTimer from "../hooks/useTimer";
+import useTabSwitchGuard from "../hooks/useTabSwitchGuard";
+import useFullscreenGuard from "../hooks/useFullscreenGuard";
+import WarningModal from "../components/WarningModal";
 
 export default function Quiz() {
   const navigate = useNavigate();
@@ -9,17 +15,70 @@ export default function Quiz() {
     currentIndex,
     markedForReview,
     loading,
+    warningCount,
+    timeRemaining,
+    setTimeRemaining,
+    submitted,
+    markSubmitted,
     answerQuestion,
     clearResponse,
     toggleMarkForReview,
     goToQuestion,
     nextQuestion,
+    incrementWarning,
     getQuestionStatus,
   } = useQuiz();
 
-  const handleSubmit = () => {
-    navigate("/submitted");
-  };
+  const [modalVisible, setModalVisible] = useState(false);
+  const [violationType, setViolationType] = useState("");
+  const isSubmittingRef = useRef(false);
+
+  // Redirect to /submitted if already submitted
+  useEffect(() => {
+    if (submitted) {
+      navigate("/submitted", { replace: true });
+    }
+  }, [submitted, navigate]);
+
+  // Submit action handling reason, api call, and navigation
+  const submitQuiz = useCallback(
+    async (reason = "manual") => {
+      if (isSubmittingRef.current || submitted) return;
+      isSubmittingRef.current = true;
+      markSubmitted();
+      try {
+        await apiSubmitQuiz(answers, warningCount);
+      } catch (err) {
+        console.error("Failed to submit quiz:", err);
+      }
+      navigate("/submitted", { state: { reason } });
+    },
+    [answers, warningCount, submitted, markSubmitted, navigate]
+  );
+
+  // Setup timer
+  useTimer(timeRemaining, setTimeRemaining, () => {
+    submitQuiz("timeout");
+  });
+
+  // Anti-cheat violation handler
+  const handleViolation = useCallback(
+    (type) => {
+      if (submitted || isSubmittingRef.current) return;
+
+      const newCount = incrementWarning();
+      setViolationType(type);
+      setModalVisible(true);
+
+      if (newCount >= 5) {
+        submitQuiz("warnings");
+      }
+    },
+    [incrementWarning, submitted, submitQuiz]
+  );
+
+  useTabSwitchGuard(handleViolation);
+  useFullscreenGuard(handleViolation);
 
   if (loading || questions.length === 0) {
     return (
@@ -36,6 +95,12 @@ export default function Quiz() {
 
   const currentQuestion = questions[currentIndex] || questions[0];
   const currentAnswer = answers[currentQuestion.id];
+
+  const formatTime = (totalSeconds) => {
+    const m = Math.floor(totalSeconds / 60);
+    const s = totalSeconds % 60;
+    return `${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
+  };
 
   const getPaletteButtonClass = (status, isCurrent) => {
     let base = "";
@@ -60,12 +125,32 @@ export default function Quiz() {
   return (
     <div className="min-h-screen p-6 md:p-8">
       <div className="max-w-7xl mx-auto">
-        {/* Header */}
-        <div className="flex items-center justify-between mb-6">
-          <h1 className="font-display text-2xl md:text-3xl font-bold text-[var(--ink)]">
-            Quiz Assessment
-          </h1>
-          <button onClick={handleSubmit} className="btn-primary cursor-pointer text-sm">
+        {/* Header with Title and Prominent Timer */}
+        <div className="flex flex-wrap items-center justify-between gap-4 mb-6">
+          <div>
+            <h1 className="font-display text-2xl md:text-3xl font-bold text-[var(--ink)]">
+              Quiz Assessment
+            </h1>
+          </div>
+
+          {/* Prominent Timer */}
+          <div className="flex items-center gap-2 bg-white px-5 py-2.5 rounded-lg border border-[var(--border)] shadow-2xs">
+            <span className="text-xs uppercase font-bold text-gray-500 tracking-wider">
+              Time Left:
+            </span>
+            <span
+              className={`font-display text-2xl font-bold ${
+                timeRemaining <= 300 ? "text-red-600 animate-pulse" : "text-[var(--blue)]"
+              }`}
+            >
+              {formatTime(timeRemaining)}
+            </span>
+          </div>
+
+          <button
+            onClick={() => submitQuiz("manual")}
+            className="btn-primary cursor-pointer text-sm"
+          >
             Submit Test
           </button>
         </div>
@@ -210,7 +295,7 @@ export default function Quiz() {
               <div className="mt-8 pt-6 border-t border-[var(--border)]">
                 <button
                   type="button"
-                  onClick={handleSubmit}
+                  onClick={() => submitQuiz("manual")}
                   className="btn-primary w-full cursor-pointer"
                 >
                   Submit Test
@@ -220,6 +305,15 @@ export default function Quiz() {
           </div>
         </div>
       </div>
+
+      {/* Warning Modal */}
+      <WarningModal
+        visible={modalVisible}
+        warningCount={warningCount}
+        maxWarnings={5}
+        violationType={violationType}
+        onDismiss={() => setModalVisible(false)}
+      />
     </div>
   );
 }
