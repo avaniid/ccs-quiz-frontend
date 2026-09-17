@@ -178,15 +178,15 @@ export default function Quiz() {
 
   const getPaletteButtonClass = (status, isCurrent) => {
     let base = "";
-    switch (status) {
+     switch (status) {
       case "answered":
-        base = "bg-[var(--blue)] text-white";
+        base = "bg-green-600 text-white";
         break;
       case "marked":
-        base = "bg-[var(--cyan)] text-white";
+        base = "bg-purple-600 text-white";
         break;
       case "not-answered":
-        base = "bg-red-100 border border-red-400 text-red-700";
+        base = "bg-red-600 text-white";
         break;
       case "not-visited":
       default:
@@ -203,7 +203,7 @@ export default function Quiz() {
         <div className="flex flex-wrap items-center justify-between gap-4 mb-6">
           <div>
             <h1 className="font-display text-2xl md:text-3xl font-bold text-[var(--ink)]">
-              Quiz Assessment
+              CCS Recruitment Quiz
             </h1>
           </div>
 
@@ -340,21 +340,21 @@ export default function Quiz() {
 
             <div className="card p-6 shadow-xs">
               <h2 className="font-display text-lg font-bold text-[var(--ink)] mb-4">
-                Question Palette
+                Questions
               </h2>
 
               {/* Legend */}
               <div className="grid grid-cols-2 gap-2 text-xs mb-6 p-3 rounded-lg bg-[var(--bg)] border border-[var(--border)]">
-                <div className="flex items-center gap-2">
-                  <span className="w-3.5 h-3.5 rounded bg-[var(--blue)] inline-block shrink-0" />
+                                <div className="flex items-center gap-2">
+                  <span className="w-3.5 h-3.5 rounded bg-green-600 inline-block shrink-0" />
                   <span className="text-gray-600">Answered</span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <span className="w-3.5 h-3.5 rounded bg-[var(--cyan)] inline-block shrink-0" />
+                  <span className="w-3.5 h-3.5 rounded bg-purple-600 inline-block shrink-0" />
                   <span className="text-gray-600">Marked</span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <span className="w-3.5 h-3.5 rounded bg-red-100 border border-red-400 inline-block shrink-0" />
+                  <span className="w-3.5 h-3.5 rounded bg-red-600 inline-block shrink-0" />
                   <span className="text-gray-600">Not Answered</span>
                 </div>
                 <div className="flex items-center gap-2">
