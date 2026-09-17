@@ -31,7 +31,7 @@ export default function useFaceGuard(videoRef, stream, onViolation) {
         landmarker = await FaceLandmarker.createFromOptions(vision, {
           baseOptions: { modelAssetPath: MODEL_URL, delegate: "GPU" },
           runningMode: "VIDEO",
-          numFaces: 3,
+          numFaces: 2,
           outputFaceBlendshapes: false,
           outputFacialTransformationMatrixes: false,
         });

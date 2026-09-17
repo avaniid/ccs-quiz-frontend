@@ -4,7 +4,10 @@ import { getVisionFileset } from "./mediapipeVision";
 const MODEL_URL =
   "https://storage.googleapis.com/mediapipe-models/object_detector/efficientdet_lite0/float32/1/efficientdet_lite0.tflite";
 
-const CHECK_INTERVAL_MS = 2200;
+// CPU inference blocks the main thread for the duration of each
+// detectForVideo() call, which is what made the visible camera preview
+// stutter/flicker — spacing calls out further keeps the page responsive.
+const CHECK_INTERVAL_MS = 4000;
 const VIOLATION_COOLDOWN_MS = 5000;
 const FLAGGED_LABELS = ["cell phone", "laptop", "tablet", "remote", "book", "mouse"];
 
@@ -35,7 +38,7 @@ export default function useObjectGuard(videoRef, stream, onViolation) {
           // CPU inference is still fast enough for a ~2s polling interval.
           baseOptions: { modelAssetPath: MODEL_URL, delegate: "CPU" },
           runningMode: "VIDEO",
-          maxResults: 5,
+          maxResults: 3,
           scoreThreshold: 0.42,
         });
       } catch (err) {
