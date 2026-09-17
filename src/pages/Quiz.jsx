@@ -180,13 +180,13 @@ export default function Quiz() {
     let base = "";
     switch (status) {
       case "answered":
-        base = "bg-[var(--blue)] text-white";
+        base = "bg-green-600 text-white";
         break;
       case "marked":
-        base = "bg-[var(--cyan)] text-white";
+        base = "bg-purple-600 text-white";
         break;
       case "not-answered":
-        base = "bg-red-100 border border-red-400 text-red-700";
+        base = "bg-red-600 text-white";
         break;
       case "not-visited":
       default:
@@ -203,7 +203,7 @@ export default function Quiz() {
         <div className="flex flex-wrap items-center justify-between gap-4 mb-6">
           <div>
             <h1 className="font-display text-2xl md:text-3xl font-bold text-[var(--ink)]">
-              Quiz Assessment
+              CCS Recruitment Quiz
             </h1>
           </div>
 
@@ -340,7 +340,7 @@ export default function Quiz() {
 
             <div className="card p-6 shadow-xs">
               <h2 className="font-display text-lg font-bold text-[var(--ink)] mb-4">
-                Question Palette
+                Questions
               </h2>
 
               {/* Legend */}
