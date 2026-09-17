@@ -10,13 +10,23 @@ export default function WarningModal({
   const getMessage = (type) => {
     switch (type) {
       case "tab-switch":
-        return "Tab switching is not allowed during the test.";
+        return "You switched away from the test tab. Stay on this tab for the rest of the test.";
       case "window-blur":
-        return "Please keep the test window focused.";
+        return "This window lost focus. Keep the test window active and in front.";
       case "fullscreen-exit":
-        return "Exiting fullscreen is not permitted during the test.";
+        return "You exited fullscreen. The test must stay in fullscreen mode.";
+      case "face-missing":
+        return "Your face wasn't visible to the camera. Stay centered in frame and facing the screen.";
+      case "multiple-faces":
+        return "More than one face was seen in the camera. Make sure you're alone in frame.";
+      case "device-detected":
+        return "A phone, tablet, laptop or similar device was seen in the camera frame. Remove it from view.";
+      case "voice-mismatch":
+        return "A voice that didn't match your enrolled voice was heard. Only you should be speaking near the mic.";
+      case "camera-lost":
+        return "Camera or microphone access was lost. Reconnect them to continue the test.";
       default:
-        return "Suspicious activity detected. Please stay on the test window.";
+        return "Suspicious activity was detected. Please follow the test rules.";
     }
   };
 
@@ -27,15 +37,15 @@ export default function WarningModal({
           !
         </div>
         <h3 className="font-display text-2xl font-bold text-red-600 mb-2">
-          Warning {warningCount}/{maxWarnings}
+          Warning
         </h3>
         <p className="text-gray-700 mb-2 font-medium">
           {getMessage(violationType)}
         </p>
         <p className="text-sm text-gray-500 mb-6">
           {warningCount >= maxWarnings
-            ? "Maximum warnings reached. Your test is being auto-submitted."
-            : `You will be auto-submitted after ${maxWarnings} warnings.`}
+            ? "Too many violations were recorded. Your test is being auto-submitted."
+            : "Repeated violations will result in your test being auto-submitted."}
         </p>
         {warningCount < maxWarnings && (
           <button

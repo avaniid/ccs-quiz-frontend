@@ -14,17 +14,70 @@ export default function Instructions() {
     }
   };
 
+  const rules = [
+    {
+      title: "Stay alone in frame",
+      detail:
+        "Keep only yourself visible to the camera. If a second face is detected, or your face isn't visible, a warning is raised.",
+    },
+    {
+      title: "No phones, tablets or other devices",
+      detail:
+        "Don't bring a phone, tablet, laptop, book, or other electronic device into the camera's view — it will be detected and flagged.",
+    },
+    {
+      title: "No other voices",
+      detail:
+        "You'll record a short voice sample before the test starts. After that, only your voice should be heard — a different voice nearby will raise a warning.",
+    },
+    {
+      title: "Don't look away from the screen",
+      detail: "Keep your attention on the test window for the full duration.",
+    },
+    {
+      title: "Don't switch tabs or windows",
+      detail: "Switching tabs, minimizing, or clicking outside this window raises a warning.",
+    },
+    {
+      title: "Stay in fullscreen",
+      detail: "Exiting fullscreen mode during the test raises a warning.",
+    },
+    {
+      title: "Keep camera & microphone on",
+      detail: "Losing camera or microphone access during the test raises a warning.",
+    },
+  ];
+
   return (
     <div className="min-h-screen flex items-center justify-center p-6">
       <div className="card max-w-3xl w-full p-8 md:p-10 shadow-xs">
-        <h2 className="font-display text-2xl md:text-3xl font-bold mb-6 text-[var(--ink)]">
+        <h2 className="font-display text-2xl md:text-3xl font-bold mb-2 text-[var(--ink)]">
           Instructions
         </h2>
-        <ul className="space-y-3 mb-8 text-gray-700 list-disc list-inside">
-          <li>Do not switch tabs or exit fullscreen during the test.</li>
-          <li>Camera and microphone must remain on.</li>
-          <li>You will be auto-submitted after 5 warnings.</li>
+        <p className="text-sm text-gray-500 mb-6">
+          This test is proctored. Please read the rules below carefully before you begin.
+        </p>
+
+        <ul className="space-y-3 mb-6">
+          {rules.map((rule) => (
+            <li
+              key={rule.title}
+              className="flex gap-3 p-3 rounded-lg border border-[var(--border)] bg-[var(--bg)]"
+            >
+              <span className="w-2 h-2 mt-1.5 rounded-full bg-[var(--blue)] shrink-0" />
+              <div>
+                <p className="font-semibold text-sm text-[var(--ink)]">{rule.title}</p>
+                <p className="text-sm text-gray-600">{rule.detail}</p>
+              </div>
+            </li>
+          ))}
         </ul>
+
+        <p className="text-sm text-gray-500 mb-8">
+          Repeated violations of the rules above can result in your test being
+          automatically submitted.
+        </p>
+
         <div className="flex flex-col items-start gap-4">
           <button onClick={handleAccept} className="btn-primary cursor-pointer">
             I Agree — Enable Camera & Mic

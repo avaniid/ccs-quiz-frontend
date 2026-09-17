@@ -5,7 +5,14 @@ import { submitQuiz as apiSubmitQuiz } from "../services/api";
 import useTimer from "../hooks/useTimer";
 import useTabSwitchGuard from "../hooks/useTabSwitchGuard";
 import useFullscreenGuard from "../hooks/useFullscreenGuard";
+import useCameraStream from "../hooks/useCameraStream";
+import useFaceGuard from "../hooks/useFaceGuard";
+import useObjectGuard from "../hooks/useObjectGuard";
+import useVoiceGuard, { ENROLL_SECONDS } from "../hooks/useVoiceGuard";
 import WarningModal from "../components/WarningModal";
+import VoiceEnrollmentOverlay from "../components/VoiceEnrollmentOverlay";
+
+const MAX_WARNINGS = 15;
 
 export default function Quiz() {
   const navigate = useNavigate();
@@ -32,6 +39,11 @@ export default function Quiz() {
   const [modalVisible, setModalVisible] = useState(false);
   const [violationType, setViolationType] = useState("");
   const isSubmittingRef = useRef(false);
+  const snapshotCanvasRef = useRef(null);
+  // Holds the latest submitQuiz so handleViolation (created before submitQuiz,
+  // since the camera/voice hooks need handleViolation up front) never calls a
+  // stale closure.
+  const submitQuizRef = useRef(() => {});
 
   // Redirect to /submitted if already submitted
   useEffect(() => {
@@ -40,28 +52,7 @@ export default function Quiz() {
     }
   }, [submitted, navigate]);
 
-  // Submit action handling reason, api call, and navigation
-  const submitQuiz = useCallback(
-    async (reason = "manual") => {
-      if (isSubmittingRef.current || submitted) return;
-      isSubmittingRef.current = true;
-      markSubmitted();
-      try {
-        await apiSubmitQuiz(answers, warningCount);
-      } catch (err) {
-        console.error("Failed to submit quiz:", err);
-      }
-      navigate("/submitted", { state: { reason } });
-    },
-    [answers, warningCount, submitted, markSubmitted, navigate]
-  );
-
-  // Setup timer
-  useTimer(timeRemaining, setTimeRemaining, () => {
-    submitQuiz("timeout");
-  });
-
-  // Anti-cheat violation handler
+  // Anti-cheat violation handler (shared by every guard: tab/fullscreen/camera-based)
   const handleViolation = useCallback(
     (type) => {
       if (submitted || isSubmittingRef.current) return;
@@ -70,12 +61,66 @@ export default function Quiz() {
       setViolationType(type);
       setModalVisible(true);
 
-      if (newCount >= 5) {
-        submitQuiz("warnings");
+      if (newCount >= MAX_WARNINGS) {
+        submitQuizRef.current("warnings");
       }
     },
-    [incrementWarning, submitted, submitQuiz]
+    [submitted, incrementWarning]
   );
+
+  // Camera + mic stream, shared across all camera/voice proctoring hooks
+  const { stream: cameraStream, videoRef, error: cameraError } = useCameraStream(handleViolation);
+  useFaceGuard(videoRef, cameraStream, handleViolation);
+  useObjectGuard(videoRef, cameraStream, handleViolation);
+  const { phase: voicePhase, secondsLeft: enrollSecondsLeft, startEnrollment } =
+    useVoiceGuard(cameraStream, handleViolation);
+
+  // Kick off voice enrollment as soon as the mic stream is ready
+  useEffect(() => {
+    if (cameraStream) {
+      startEnrollment();
+    }
+  }, [cameraStream, startEnrollment]);
+
+  const captureSnapshot = useCallback(() => {
+    const video = videoRef.current;
+    if (!video || video.videoWidth === 0) return null;
+    const canvas = snapshotCanvasRef.current;
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+    canvas.getContext("2d").drawImage(video, 0, 0);
+    try {
+      return canvas.toDataURL("image/jpeg", 0.8);
+    } catch {
+      return null;
+    }
+  }, [videoRef]);
+
+  // Submit action handling reason, api call, and navigation
+  const submitQuiz = useCallback(
+    async (reason = "manual") => {
+      if (isSubmittingRef.current || submitted) return;
+      isSubmittingRef.current = true;
+      markSubmitted();
+      try {
+        const snapshot = captureSnapshot();
+        await apiSubmitQuiz(answers, warningCount, snapshot);
+      } catch (err) {
+        console.error("Failed to submit quiz:", err);
+      }
+      navigate("/submitted", { state: { reason } });
+    },
+    [answers, warningCount, submitted, markSubmitted, navigate, captureSnapshot]
+  );
+
+  useEffect(() => {
+    submitQuizRef.current = submitQuiz;
+  }, [submitQuiz]);
+
+  // Setup timer
+  useTimer(timeRemaining, setTimeRemaining, () => {
+    submitQuiz("timeout");
+  });
 
   useTabSwitchGuard(handleViolation);
   useFullscreenGuard(handleViolation);
@@ -88,6 +133,35 @@ export default function Quiz() {
             Loading Quiz...
           </h2>
           <p className="text-gray-500 text-sm">Please wait while questions are loaded.</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (cameraError) {
+    return (
+      <div className="min-h-screen flex items-center justify-center p-6">
+        <div className="card max-w-md w-full p-8 text-center shadow-xs">
+          <h2 className="font-display text-xl font-bold mb-2 text-red-600">
+            Camera/Microphone Required
+          </h2>
+          <p className="text-gray-500 text-sm">
+            Proctoring could not access your camera and microphone. Please allow
+            access and reload this page to continue.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!cameraStream) {
+    return (
+      <div className="min-h-screen flex items-center justify-center p-6">
+        <div className="card max-w-md w-full p-8 text-center shadow-xs">
+          <h2 className="font-display text-xl font-bold mb-2 text-[var(--ink)]">
+            Setting Up Proctoring...
+          </h2>
+          <p className="text-gray-500 text-sm">Requesting camera and microphone access.</p>
         </div>
       </div>
     );
@@ -245,6 +319,25 @@ export default function Quiz() {
 
           {/* Palette Sidebar */}
           <div className="space-y-6">
+            {/* Proctoring camera widget */}
+            <div className="card p-4 shadow-xs">
+              <div className="flex items-center gap-2 mb-3">
+                <span className="w-2.5 h-2.5 rounded-full bg-red-500 animate-pulse shrink-0" />
+                <span className="text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                  Proctoring Active
+                </span>
+              </div>
+              <div className="relative rounded-lg overflow-hidden border border-[var(--border)] bg-black aspect-4/3">
+                <video
+                  ref={videoRef}
+                  autoPlay
+                  playsInline
+                  muted
+                  className="w-full h-full object-cover [transform:scaleX(-1)]"
+                />
+              </div>
+            </div>
+
             <div className="card p-6 shadow-xs">
               <h2 className="font-display text-lg font-bold text-[var(--ink)] mb-4">
                 Question Palette
@@ -306,13 +399,30 @@ export default function Quiz() {
         </div>
       </div>
 
+      {/* Hidden canvas used only to capture a submit-time snapshot */}
+      <canvas ref={snapshotCanvasRef} className="hidden" />
+
+      {/* Voice enrollment overlay (blocks interaction until enrolled) */}
+      <VoiceEnrollmentOverlay
+        visible={voicePhase === "enrolling"}
+        secondsLeft={enrollSecondsLeft}
+        totalSeconds={ENROLL_SECONDS}
+      />
+
       {/* Warning Modal */}
       <WarningModal
         visible={modalVisible}
         warningCount={warningCount}
-        maxWarnings={5}
+        maxWarnings={MAX_WARNINGS}
         violationType={violationType}
-        onDismiss={() => setModalVisible(false)}
+        onDismiss={() => {
+          setModalVisible(false);
+          // Re-entering fullscreen needs a real user gesture (this click) —
+          // the guard's own automatic retry silently fails without one.
+          if (violationType === "fullscreen-exit" && !document.fullscreenElement) {
+            document.documentElement.requestFullscreen?.().catch(() => {});
+          }
+        }}
       />
     </div>
   );

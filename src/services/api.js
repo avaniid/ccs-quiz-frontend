@@ -3,7 +3,12 @@ export async function fetchQuestions(quizId) {
     return mockQuestions;
 }
 
-export async function submitQuiz(answers, flagsRaised) {
-    console.log("Mock submit:", answers, flagsRaised);
+export async function submitQuiz(answers, flagsRaised, snapshotImage) {
+    const payload = {
+        Responses: answers,
+        FlagsRaised: flagsRaised,
+        Image: snapshotImage || null,
+    };
+    console.log("Mock submit:", payload);
     return { status: "ok" };
 }
