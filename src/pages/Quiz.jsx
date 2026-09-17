@@ -178,7 +178,7 @@ export default function Quiz() {
 
   const getPaletteButtonClass = (status, isCurrent) => {
     let base = "";
-    switch (status) {
+     switch (status) {
       case "answered":
         base = "bg-green-600 text-white";
         break;
@@ -345,16 +345,16 @@ export default function Quiz() {
 
               {/* Legend */}
               <div className="grid grid-cols-2 gap-2 text-xs mb-6 p-3 rounded-lg bg-[var(--bg)] border border-[var(--border)]">
-                <div className="flex items-center gap-2">
-                  <span className="w-3.5 h-3.5 rounded bg-[var(--blue)] inline-block shrink-0" />
+                                <div className="flex items-center gap-2">
+                  <span className="w-3.5 h-3.5 rounded bg-green-600 inline-block shrink-0" />
                   <span className="text-gray-600">Answered</span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <span className="w-3.5 h-3.5 rounded bg-[var(--cyan)] inline-block shrink-0" />
+                  <span className="w-3.5 h-3.5 rounded bg-purple-600 inline-block shrink-0" />
                   <span className="text-gray-600">Marked</span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <span className="w-3.5 h-3.5 rounded bg-red-100 border border-red-400 inline-block shrink-0" />
+                  <span className="w-3.5 h-3.5 rounded bg-red-600 inline-block shrink-0" />
                   <span className="text-gray-600">Not Answered</span>
                 </div>
                 <div className="flex items-center gap-2">
