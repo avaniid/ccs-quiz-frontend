@@ -27,9 +27,12 @@ func CalcScore() error {
 
 	for ansCursor.Next(ctx) {
 		var ans models.Quiz_Answer
-		err := ansCursor.Decode(&ans)
-		if err != nil {
-			log.Fatal(err)
+		if err := ansCursor.Decode(&ans); err != nil {
+			log.Printf("calcScore: skipping unreadable answer key: %v", err)
+			continue
+		}
+		if ans.QuestionID == nil || ans.Answer == nil {
+			continue
 		}
 		answerMap[*ans.QuestionID] = *ans.Answer
 	}
@@ -38,7 +41,11 @@ func CalcScore() error {
 		var response models.Quiz_Responses
 
 		if err := respCursor.Decode(&response); err != nil {
-			log.Fatal(err)
+			log.Printf("calcScore: skipping unreadable response: %v", err)
+			continue
+		}
+		if response.UserID == nil {
+			continue
 		}
 
 		score := 0

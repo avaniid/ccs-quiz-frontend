@@ -3,6 +3,7 @@ package login
 import (
 	"log"
 	"net/http"
+	"net/url"
 	"os"
 	"time"
 
@@ -27,7 +28,11 @@ func HandleAuthCallback(c *gin.Context) {
 	frontendRedirectUrl := os.Getenv("FRONTEND_REDIRECT_URL")
 
 	if jwtSecret == "" || frontendRedirectUrl == "" {
-		log.Fatal("env variables for oauth callback missing")
+		// A request handler must never call log.Fatal: it exits the process and
+		// takes the whole backend down for every other candidate.
+		log.Println("oauth callback: JWT_SECRET or FRONTEND_REDIRECT_URL missing")
+		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": "server misconfigured"})
+		return
 	}
 
 	user, err := gothic.CompleteUserAuth(c.Writer, c.Request)
@@ -44,19 +49,25 @@ func HandleAuthCallback(c *gin.Context) {
 
 	signedToken, err := token.SignedString([]byte(jwtSecret))
 
-	err1 := StoreAuthUser(user.Email, signedToken, uid)
-	if err1 != nil {
-		log.Fatal("UNABLE TO STORE USER")
+	if err != nil {
+		log.Printf("oauth callback: could not sign token for %s: %v", user.Email, err)
+		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": "could not create session"})
+		return
 	}
 
-	if err != nil {
-		c.AbortWithError(http.StatusInternalServerError, err)
+	if err := StoreAuthUser(user.Email, signedToken, uid); err != nil {
+		log.Printf("oauth callback: could not store user %s: %v", user.Email, err)
+		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": "could not store your account"})
 		return
 	}
 
 	setSessionCookie(c, signedToken, 3600*12)
 
-	c.Redirect(http.StatusTemporaryRedirect, frontendRedirectUrl)
+	// Also hand the token over in the URL fragment. The cookie alone is not
+	// enough: the frontend is on a different site, so browsers that block
+	// third-party cookies never send it back. A fragment is never transmitted to
+	// any server and the frontend clears it from the address bar on arrival.
+	c.Redirect(http.StatusTemporaryRedirect, frontendRedirectUrl+"#token="+url.QueryEscape(signedToken))
 }
 
 // setSessionCookie writes the session_token cookie with the SameSite policy the
@@ -79,7 +90,7 @@ func setSessionCookie(c *gin.Context, value string, maxAge int) {
 // "headers already written" warning after the abort, and the browser would
 // follow it into an opaque CORS failure instead of surfacing the 401.
 func AuthMiddleware(c *gin.Context) {
-	tokenStr, err := c.Cookie("session_token")
+	tokenStr, err := SessionToken(c)
 	if err != nil {
 		c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "Missing session token"})
 		return

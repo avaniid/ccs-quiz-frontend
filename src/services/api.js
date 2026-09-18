@@ -1,4 +1,4 @@
-import api, { API_BASE_URL } from "../api/client";
+import api, { API_BASE_URL, clearSessionToken } from "../api/client";
 
 /**
  * The Go models carry only bson tags, so Gin serialises the Go field names
@@ -69,8 +69,13 @@ export async function verifySession() {
 }
 
 export async function logout() {
-  const { data } = await api.get("/logout");
-  return data;
+  try {
+    const { data } = await api.get("/logout");
+    return data;
+  } finally {
+    // Drop the local copy too, or the bearer token would outlive the cookie.
+    clearSessionToken();
+  }
 }
 
 /**

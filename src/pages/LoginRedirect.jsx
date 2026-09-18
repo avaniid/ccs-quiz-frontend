@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { verifySession, checkAlreadySubmitted } from "../services/api";
+import { storeSessionToken } from "../api/client";
 
 /**
  * Landing page for the backend's OAuth callback (FRONTEND_REDIRECT_URL must
@@ -13,6 +14,15 @@ function LoginRedirect() {
 
   useEffect(() => {
     let isMounted = true;
+
+    // The OAuth callback appends "#token=..." because the session cookie is a
+    // third-party cookie here and many browsers drop it. Keep the token, then
+    // strip it from the address bar so it is not left in history or shared.
+    const hash = window.location.hash;
+    if (hash.startsWith("#token=")) {
+      storeSessionToken(decodeURIComponent(hash.slice("#token=".length)));
+      window.history.replaceState(null, "", window.location.pathname);
+    }
 
     async function verify() {
       try {

@@ -4,6 +4,7 @@ import (
 	"errors"
 	"net/http"
 	"os"
+	"strings"
 
 	models "ccs.quizportal/Models"
 	"ccs.quizportal/db"
@@ -43,10 +44,30 @@ func StoreAuthUser(email string, token string, uid models.UID) error {
 	}
 }
 
+// SessionToken pulls the JWT from the Authorization header first, then the
+// session_token cookie.
+//
+// The header path exists because the frontend and this API are served from
+// different sites (vercel.app vs onrender.com), which makes the session cookie a
+// third-party cookie. Edge, Safari, Firefox and every incognito mode drop those,
+// so cookie-only auth silently fails for a large share of candidates.
+func SessionToken(c *gin.Context) (string, error) {
+	if h := c.GetHeader("Authorization"); h != "" {
+		if token, ok := strings.CutPrefix(h, "Bearer "); ok && token != "" {
+			return strings.TrimSpace(token), nil
+		}
+	}
+	token, err := c.Cookie("session_token")
+	if err != nil || token == "" {
+		return "", errors.New("no session token")
+	}
+	return token, nil
+}
+
 func GetUIDFromSession(c *gin.Context) (models.UID, error) {
-	tokenStr, err := c.Cookie("session_token")
+	tokenStr, err := SessionToken(c)
 	if err != nil {
-		return nil, errors.New("session_token cookie missing")
+		return nil, errors.New("session_token missing")
 	}
 
 	claims := jwt.MapClaims{}
@@ -75,7 +96,7 @@ func GetUIDFromSession(c *gin.Context) (models.UID, error) {
 // after the OAuth redirect to find out whether the session cookie it just got is
 // usable, so it answers with JSON instead of redirecting a browser around.
 func Verify_token(c *gin.Context) {
-	tokenStr, err := c.Cookie("session_token")
+	tokenStr, err := SessionToken(c)
 	if err != nil {
 		c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "Missing session token"})
 		return
