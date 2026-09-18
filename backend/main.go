@@ -138,5 +138,17 @@ func main() {
 }
 
 func checkHealth(c *gin.Context) {
-	c.JSON(http.StatusOK, gin.H{"message": "Backend is up and running"})
+	// Report which build is actually serving. Render injects RENDER_GIT_COMMIT,
+	// so this answers "did my deploy land?" without guessing from behaviour.
+	commit := os.Getenv("RENDER_GIT_COMMIT")
+	if commit == "" {
+		commit = "local"
+	}
+	if len(commit) > 7 {
+		commit = commit[:7]
+	}
+	c.JSON(http.StatusOK, gin.H{
+		"message": "Backend is up and running",
+		"commit":  commit,
+	})
 }
