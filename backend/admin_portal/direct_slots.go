@@ -26,6 +26,48 @@ type pendingUser struct {
 	Assigned    bool   `json:"assigned"`
 	Requested   bool   `json:"requested"`    // raised a slot request and is waiting
 	RequestedAt string `json:"requested_at"` // local time, "" when never requested
+	Submitted   bool   `json:"submitted"`    // finished; needs a reset to retake
+}
+
+// ResetAttempt clears one account's attempt so the same login can take the quiz
+// again. Testing aid: a finished attempt is deliberately permanent, and there
+// are only a handful of real @thapar.edu logins to test with.
+// POST /admin/reset-attempt
+func ResetAttempt(c *gin.Context) {
+	var req struct {
+		Email string `json:"email"`
+	}
+	if err := c.ShouldBindJSON(&req); err != nil || req.Email == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "email required"})
+		return
+	}
+
+	var user models.AuthUser
+	if err := db.AUTH.Coll.FindOne(
+		db.AUTH.Context, bson.M{"userEmail": req.Email},
+	).Decode(&user); err != nil || user.UserId == nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "that account has not signed in yet"})
+		return
+	}
+
+	filter := bson.M{"userID": user.UserId}
+	// Answers, marks/flags/snapshot, and the started/submitted flags. The
+	// assigned paper is kept, so the candidate can simply retake it.
+	r1, err1 := db.Quiz_Responses.Coll.DeleteOne(db.Quiz_Responses.Context, filter)
+	r2, err2 := db.Quiz_Track.Coll.DeleteOne(db.Quiz_Track.Context, filter)
+	r3, err3 := db.Updates.Coll.DeleteOne(db.Updates.Context, filter)
+	if err1 != nil || err2 != nil || err3 != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "could not clear the attempt"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"message":   "attempt cleared, this account can take the quiz again",
+		"email":     req.Email,
+		"responses": r1.DeletedCount,
+		"track":     r2.DeletedCount,
+		"updates":   r3.DeletedCount,
+	})
 }
 
 // ListSignedInUsers reports every account that has signed in, and whether it
@@ -51,6 +93,15 @@ func ListSignedInUsers(c *gin.Context) {
 		).Decode(&uq); err == nil {
 			row.Assigned = true
 			row.Shift = uq.Shift
+		}
+
+		var done struct {
+			Submitted bool `bson:"quiz_submitted"`
+		}
+		if err := db.Updates.Coll.FindOne(
+			db.Updates.Context, bson.M{"userID": u.UserId},
+		).Decode(&done); err == nil {
+			row.Submitted = done.Submitted
 		}
 
 		var reqDoc struct {

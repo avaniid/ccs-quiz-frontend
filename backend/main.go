@@ -107,6 +107,7 @@ func main() {
 		authorized_admin.POST("/reassign-shift", admin.ReassignShiftAndQuestions)
 		authorized_admin.GET("/api/signed-in-users", admin.ListSignedInUsers)
 		authorized_admin.POST("/assign-slot", admin.AssignSlotToUser)
+		authorized_admin.POST("/reset-attempt", admin.ResetAttempt)
 		authorized_admin.GET("/set-shift-timing", func(c *gin.Context) {
 			c.HTML(200, "set_shift_timing.html", nil)
 		})
