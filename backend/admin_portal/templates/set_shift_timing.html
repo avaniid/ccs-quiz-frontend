@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>Set Shift Timing</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <style>
+    body { font-family: Inter, sans-serif; background: #0f172a; color: #f1f5f9; margin: 0; }
+    .navbar { background: #1e293b; padding: 16px; display: flex; gap: 24px; align-items: center; }
+    .navbar a { color: #facc15; text-decoration: none; font-weight: 700; font-size: 16px; }
+    .navbar a:hover { color: #fde047; }
+    .container { max-width: 500px; margin: 40px auto; background: #1e293b; border-radius: 12px; padding: 32px; box-shadow: 0 2px 12px #0006; }
+    h2 { margin-top: 0; }
+    label { display: block; margin: 18px 0 6px; font-weight: 600; }
+    input[type="number"], input[type="date"], input[type="time"] {
+      width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #334155; background: #0f172a; color: #f1f5f9; font-size: 15px;
+    }
+    button { margin-top: 24px; padding: 12px 24px; border-radius: 8px; background: #facc15; color: #1e293b; font-weight: 700; border: none; cursor: pointer; }
+    button:hover { background: #fde047; }
+    .result { margin-top: 18px; color: #facc15; font-weight: 600; }
+  </style>
+</head>
+<body>
+  <nav class="navbar">
+    <a href="/admin/home">Home</a>
+    <a href="/admin/set-shift-timing">Set Shift Timing</a>
+    <a href="/admin/add-quiz-question">Add Quiz Q</a>
+    <a href="/admin/reg-responses">Reg Responses</a>
+  </nav>
+  <div class="container">
+    <h2>Set Shift Timing</h2>
+    <form id="shiftForm">
+      <label for="shiftNum">Shift Number</label>
+      <input type="number" id="shiftNum" min="1" required />
+
+      <label for="shiftDate">Date</label>
+      <input type="date" id="shiftDate" required />
+
+      <label for="shiftStart">Start Time</label>
+      <input type="time" id="shiftStart" required />
+
+      <button type="submit">Set Shift Timing</button>
+    </form>
+    <div class="result" id="result"></div>
+  </div>
+  <script>
+    document.getElementById('shiftForm').onsubmit = async function(e) {
+      e.preventDefault();
+      const shift = parseInt(document.getElementById('shiftNum').value, 10);
+      const date = document.getElementById('shiftDate').value;
+      const start_time = document.getElementById('shiftStart').value;
+      if (!shift || !date || !start_time) {
+        document.getElementById('result').textContent = "Please fill all fields.";
+        return;
+      }
+      const res = await fetch('/admin/set-shift-timing', {
+        method: 'POST',
+        headers: {'Content-Type':'application/json'},
+        body: JSON.stringify({shift, date, start_time})
+      });
+      const data = await res.json();
+      document.getElementById('result').textContent = data.message || data.error || "Done";
+    };
+  </script>
+</body>
+</html>

@@ -1,13 +1,35 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { verifySession } from "../services/api";
 
 export default function Instructions() {
   const [error, setError] = useState("");
   const navigate = useNavigate();
 
+  // Don't let anyone read the rules into a test they can't start — /quiz/get
+  // needs the session cookie this check validates.
+  useEffect(() => {
+    let isMounted = true;
+    verifySession().catch(() => {
+      if (isMounted) navigate("/", { replace: true });
+    });
+    return () => {
+      isMounted = false;
+    };
+  }, [navigate]);
+
   const handleAccept = async () => {
+    // Fullscreen first, and before any await: requestFullscreen needs a live
+    // user gesture, and the getUserMedia permission prompt consumes the one
+    // from this click. Entering it here also keeps useFullscreenGuard on the
+    // quiz page from retrying (and failing) without a gesture of its own.
+    const fullscreenRequest = document.fullscreenElement
+      ? Promise.resolve()
+      : document.documentElement.requestFullscreen?.().catch(() => {});
+
     try {
       await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+      await fullscreenRequest;
       navigate("/quiz");
     } catch (err) {
       setError("Camera and microphone access is required to start the test.");

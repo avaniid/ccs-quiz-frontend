@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Add Quiz Question</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    :root{
+      --bg:#0f1220; --panel:#151a31; --card:#171a2b; --muted:#9aa4bf; --brand:#7f9cf5; --brand-2:#22d3ee;
+      --text:#e7eaf6; --ok:#38a169; --bad:#e53e3e;
+    }
+    *{box-sizing:border-box}
+    body{
+      margin:0; background:
+      radial-gradient(1200px 600px at 10% -10%, rgba(127,156,245,.15), transparent 60%),
+      radial-gradient(900px 600px at 110% 10%, rgba(34,211,238,.12), transparent 55%),
+      var(--bg);
+      color:var(--text); font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;
+    }
+    .nav{
+      display:flex; align-items:center; justify-content:space-between;
+      padding:16px 22px; position:sticky; top:0; z-index:10;
+      background:rgba(15,18,32,.75); backdrop-filter:saturate(140%) blur(10px); border-bottom:1px solid rgba(127,156,245,.2)
+    }
+    .nav a{color:var(--text); text-decoration:none; font-weight:600; padding:8px 12px; border-radius:10px; opacity:.9}
+    .nav a:hover{background:rgba(127,156,245,.12); opacity:1}
+    .brand{display:flex; align-items:center; gap:12px; font-weight:800}
+.logo {
+  width: 38px;
+  height: 38px;
+  object-fit: contain;  /* ensures it scales well */
+  border-radius: 8px;   /* optional: keeps smooth edges */
+}
+    .wrap{max-width:900px; margin:26px auto; padding:0 18px 50px}
+    h2{margin:0 0 14px}
+    .panel{
+      background:rgba(23,26,43,.9); border:1px solid rgba(127,156,245,.2); border-radius:18px; padding:22px;
+      box-shadow:0 10px 40px rgba(0,0,0,.4)
+    }
+    label{display:block; font-weight:700; color:#c9d3f3; margin:12px 0 6px}
+    textarea,input,select{
+      width:100%; padding:12px 14px; border-radius:12px; border:1px solid rgba(127,156,245,.25);
+      background:#0f1426; color:var(--text); font-size:15px; outline:none
+    }
+    textarea:focus,input:focus,select:focus{border-color:var(--brand)}
+    .row{display:grid; grid-template-columns:1fr 180px; gap:12px}
+    .options{margin-top:10px}
+    .option-row{display:grid; grid-template-columns:36px 1fr; gap:10px; align-items:center; margin-bottom:8px}
+    .option-row input[type="radio"]{accent-color:#7f9cf5; width:18px; height:18px; margin:auto}
+    .actions{display:flex; gap:10px; margin-top:16px; flex-wrap:wrap}
+    .btn{
+      background:linear-gradient(135deg,var(--brand),var(--brand-2)); color:#0b1022; border:none;
+      padding:12px 16px; border-radius:12px; font-weight:800; cursor:pointer
+    }
+    .btn.secondary{
+      background:transparent; color:var(--text); border:1px solid rgba(127,156,245,.35)
+    }
+    .msg{margin-top:12px}
+    .toast{
+      padding:10px 12px; border-radius:12px; border:1px solid; font-weight:700
+    }
+    .toast.ok{background:rgba(56,161,105,.12); border-color:rgba(56,161,105,.45); color:#c8f5d8}
+    .toast.bad{background:rgba(229,62,62,.12); border-color:rgba(229,62,62,.45); color:#ffb3b3}
+    .hint{color:var(--muted); font-size:13px}
+    @media (max-width:640px){ .row{grid-template-columns:1fr} }
+  </style>
+</head>
+<body>
+  <header class="nav">
+    <div class="brand"><img src="/static/images/ccs-logo.png" alt="CCS Logo" class="logo"> <span>CCS Admin</span></div>
+    <nav>
+      <a href="/admin/home">Home</a>
+      <a href="/admin/add-quiz-question">Add Quiz Q</a>
+      <a href="/admin/add-reg-question">Add Reg Q</a>
+      <a href="/admin/logout">Logout</a>
+    </nav>
+  </header>
+
+  <main class="wrap">
+    <div class="panel">
+      <h2>Add Quiz Question</h2>
+      <p class="hint">Fill the fields below. Mark exactly one correct option.</p>
+
+      <div id="msg" class="msg"></div>
+
+      <form id="quizForm" autocomplete="off">
+        <label>Question</label>
+        <textarea name="question" required rows="3" placeholder="Enter your quiz question"></textarea>
+
+        <div class="row">
+          <div>
+            <label>Image URL (optional)</label>
+            <input type="text" name="image_url" placeholder="https://..." />
+          </div>
+          <div>
+            <label>Shift</label>
+            <input type="number" name="shift" value="1" min="1" required />
+          </div>
+        </div>
+
+        <label>Options</label>
+        <div class="options" id="options">
+          <div class="option-row">
+            <input type="radio" name="correct_option" value="0" required />
+            <input type="text" name="option_value" required placeholder="Option 1" />
+          </div>
+          <div class="option-row">
+            <input type="radio" name="correct_option" value="1" />
+            <input type="text" name="option_value" required placeholder="Option 2" />
+          </div>
+        </div>
+        <input type="hidden" name="option_count" id="option_count" value="2" />
+
+        <div class="actions">
+          <button type="button" class="btn secondary" id="addOptionBtn">+ Add Option</button>
+          <button type="submit" class="btn">Add Question</button>
+        </div>
+      </form>
+    </div>
+  </main>
+
+  <script>
+    let optionCount = 2;
+    const optionsDiv = document.getElementById('options');
+    const optionCountInput = document.getElementById('option_count');
+
+    document.getElementById('addOptionBtn').addEventListener('click', () => {
+      const div = document.createElement('div');
+      div.className = 'option-row';
+      div.innerHTML = `
+        <input type="radio" name="correct_option" value="${optionCount}" />
+        <input type="text" name="option_value" required placeholder="Option ${optionCount + 1}" />
+      `;
+      optionsDiv.appendChild(div);
+      optionCount++;
+      optionCountInput.value = optionCount;
+    });
+
+    document.getElementById('quizForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const form = e.target;
+      const fd = new FormData(form);
+
+      if (!fd.get('correct_option')) {
+        toast('Please select the correct answer.', true);
+        return;
+      }
+      try {
+        const res = await fetch('/admin/add-quiz-question', { method:'POST', body: fd });
+        if (res.ok) {
+          toast('Question submitted successfully!');
+          form.reset();
+          // Reset options to two rows
+          optionsDiv.innerHTML = `
+            <div class="option-row">
+              <input type="radio" name="correct_option" value="0" required />
+              <input type="text" name="option_value" required placeholder="Option 1" />
+            </div>
+            <div class="option-row">
+              <input type="radio" name="correct_option" value="1" />
+              <input type="text" name="option_value" required placeholder="Option 2" />
+            </div>
+          `;
+          optionCount = 2;
+          optionCountInput.value = optionCount;
+        } else {
+          toast('Failed to submit: ' + await res.text(), true);
+        }
+      } catch (err) {
+        toast('Failed to submit: ' + err, true);
+      }
+    });
+
+    function toast(message, isError=false){
+      const msg = document.getElementById('msg');
+      msg.innerHTML = `<div class="toast ${isError?'bad':'ok'}">${message}</div>`;
+      setTimeout(()=> msg.innerHTML = '', 2600);
+    }
+  </script>
+</body>
+</html>

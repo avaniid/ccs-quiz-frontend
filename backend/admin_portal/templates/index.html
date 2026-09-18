@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Admin Portal</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    :root{
+      --bg:#0f1220; --card:#171a2b; --muted:#9aa4bf; --brand:#7f9cf5; --brand-2:#22d3ee; --text:#e7eaf6; --ok:#38a169; --bad:#e53e3e;
+    }
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{
+      margin:0; background:
+      radial-gradient(1200px 600px at 10% -10%, rgba(127,156,245,.15), transparent 60%),
+      radial-gradient(900px 600px at 110% 10%, rgba(34,211,238,.12), transparent 55%),
+      var(--bg);
+      color:var(--text); font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;
+    }
+    .app{display:grid; grid-template-rows:auto 1fr; min-height:100vh}
+    .nav{
+      display:flex; align-items:center; justify-content:space-between;
+      padding:16px 22px; position:sticky; top:0; z-index:10;
+      background:rgba(15,18,32,.75); backdrop-filter:saturate(140%) blur(10px); border-bottom:1px solid rgba(127,156,245,.2)
+    }
+    .brand{display:flex; align-items:center; gap:12px; font-weight:800; letter-spacing:.3px}
+    .logo {
+  width: 38px;
+  height: 38px;
+  object-fit: contain;  /* ensures it scales well */
+  border-radius: 8px;   /* optional: keeps smooth edges */
+}
+    .nav a{color:var(--text); text-decoration:none; font-weight:600; padding:8px 12px; border-radius:10px; opacity:.9}
+    .nav a:hover{background:rgba(127,156,245,.12); opacity:1}
+    .wrap{max-width:1100px; margin:28px auto; padding:0 18px 60px}
+    .hero{
+      background:linear-gradient(180deg, rgba(127,156,245,.10), rgba(127,156,245,0) 60%), var(--card);
+      border:1px solid rgba(127,156,245,.2); border-radius:20px; padding:28px; box-shadow:0 10px 40px rgba(0,0,0,.35)
+    }
+    h1{margin:0 0 8px; font-size:28px}
+    .muted{color:var(--muted)}
+    .grid{display:grid; grid-template-columns:repeat(auto-fit,minmax(240px,1fr)); gap:16px; margin-top:18px}
+    .card{
+      background:rgba(23,26,43,.85); border:1px solid rgba(127,156,245,.18);
+      border-radius:16px; padding:18px; transition:transform .2s ease, box-shadow .2s ease; position:relative; overflow:hidden
+    }
+    .card:before{
+      content:""; position:absolute; inset:-2px; background:
+      radial-gradient(500px 120px at -10% -30%, rgba(127,156,245,.22), transparent 40%),
+      radial-gradient(400px 120px at 120% 140%, rgba(34,211,238,.18), transparent 50%);
+      pointer-events:none; opacity:.9
+    }
+    .card:hover{transform:translateY(-2px); box-shadow:0 12px 40px rgba(0,0,0,.45)}
+    .card h3{margin:0 0 6px; font-size:18px}
+    .card p{margin:0 0 12px; color:var(--muted); font-size:14px}
+    .btn{display:inline-block; padding:10px 14px; border-radius:10px; font-weight:700; text-decoration:none;
+      background:linear-gradient(135deg,var(--brand),var(--brand-2)); color:#0b1022; box-shadow:0 8px 20px rgba(127,156,245,.35)}
+    .btn:hover{filter:brightness(1.05)}
+    .list{margin-top:18px; padding-left:18px; color:var(--muted)}
+    .list a{color:var(--brand)}
+    @media (max-width:480px){ h1{font-size:22px} }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <header class="nav">
+      <div class="brand"><img src="/static/images/ccs-logo.png" alt="CCS Logo" class="logo"> <span>CCS Admin</span></div>
+      <nav>
+        <a href="/admin/home">Home</a>
+        <a href="/admin/add-quiz-question">Add Quiz Q</a>
+        <a href="/admin/add-reg-question">Add Reg Q</a>
+        <a href="/admin/logout">Logout</a>
+      </nav>
+    </header>
+
+    <main class="wrap">
+      <section class="hero">
+        <h1>Welcome to CCS REG & QUIZ Admin</h1>
+        <p class="muted">Manage questions, review activity, and keep your events running smoothly.</p>
+
+        <div class="grid">
+          <div class="card">
+            <h3>Quick Add — Quiz Question</h3>
+            <p>Create multiple-choice questions with images and set the correct option.</p>
+            <a class="btn" href="/admin/add-quiz-question">Add Quiz Question</a>
+          </div>
+          <div class="card">
+            <h3>Quick Add — Registration Question</h3>
+            <p>Collect the right info with validation and optional/mandatory flags.</p>
+            <a class="btn" href="/admin/add-reg-question">Add Registration Question</a>
+          </div>
+          <div class="card">
+            <h3>View Submissions</h3>
+            <p>Browse and audit incoming responses for quality control.</p>
+            <a class="btn" href="/admin/reg-responses">Open Submissions</a>
+          </div>
+          <div class="card">
+            <h3>Status</h3>
+            <p>Portal is <strong style="color:var(--ok)">Operational</strong>. No pending alerts.</p>
+          </div>
+        </div>
+        <button id="removeDupBtn" class="btn" style="margin-top:24px;">Remove Duplicate Registrations</button>
+<div id="dupResult" style="margin-top:12px;color:#facc15;font-weight:600;"></div>
+<button id="setShiftBtn" class="btn" style="margin:24px 0;">Set Shift Timings</button>
+<script>
+document.getElementById('setShiftBtn').onclick = function() {
+  window.location.href = "/admin/set-shift-timing";
+};
+</script>
+<div style="margin-top:32px;">
+  <label for="numShifts" style="font-weight:600;">Number of Shifts:</label>
+  <input type="number" id="numShifts" min="1" value="3" style="width:60px; margin:0 8px;">
+  <label for="questionsPerSet" style="font-weight:600;">Questions per Set:</label>
+  <input type="number" id="questionsPerSet" min="1" value="10" style="width:60px; margin:0 8px;">
+  <button id="assignShiftsBtn" class="btn">Assign Shifts &amp; Questions</button>
+  <div id="assignShiftsResult" style="margin-top:10px; color:#facc15; font-weight:600;"></div>
+</div>
+<script>
+document.getElementById('assignShiftsBtn').onclick = async function() {
+  const numShifts = parseInt(document.getElementById('numShifts').value, 10);
+  const questionsPerSet = parseInt(document.getElementById('questionsPerSet').value, 10);
+  if (!numShifts || numShifts < 1) {
+    alert("Enter a valid number of shifts.");
+    return;
+  }
+  if (!questionsPerSet || questionsPerSet < 1) {
+    alert("Enter a valid number of questions per set.");
+    return;
+  }
+  if (!confirm("Are you sure you want to assign shifts and shuffle questions for all registered users?")) return;
+  const res = await fetch('/admin/assign-shifts', {
+    method: 'POST',
+    headers: {'Content-Type':'application/json'},
+    body: JSON.stringify({num_shifts: numShifts, questions_per_set: questionsPerSet})
+  });
+  const data = await res.json();
+  document.getElementById('assignShiftsResult').textContent =
+    (data.message || "Done") + " | Created: " + (data.created || 0) + " | Skipped (already assigned): " + (data.skipped_existing || 0);
+};
+</script>
+<div style="margin-top:32px;">
+  <label for="reShift" style="font-weight:600;">Shift Number:</label>
+  <input type="number" id="reShift" min="1" value="1" style="width:60px; margin:0 8px;">
+  <label for="reQuestionsPerSet" style="font-weight:600;">Questions per Set:</label>
+  <input type="number" id="reQuestionsPerSet" min="1" value="10" style="width:60px; margin:0 8px;">
+  <button id="reassignShiftBtn" class="btn">Reassign Shift &amp; Questions</button>
+  <div id="reassignShiftResult" style="margin-top:10px; color:#facc15; font-weight:600;"></div>
+</div>
+<script>
+document.getElementById('reassignShiftBtn').onclick = async function() {
+  const shift = parseInt(document.getElementById('reShift').value, 10);
+  const questionsPerSet = parseInt(document.getElementById('reQuestionsPerSet').value, 10);
+  if (!shift || shift < 1) {
+    alert("Enter a valid shift number.");
+    return;
+  }
+  if (!questionsPerSet || questionsPerSet < 1) {
+    alert("Enter a valid number of questions per set.");
+    return;
+  }
+  if (!confirm("Are you sure you want to reassign shift and questions for all pending users?")) return;
+  const res = await fetch('/admin/reassign-shift', {
+    method: 'POST',
+    headers: {'Content-Type':'application/json'},
+    body: JSON.stringify({shift: shift, questions_per_set: questionsPerSet})
+  });
+  const data = await res.json();
+  document.getElementById('reassignShiftResult').textContent =
+    (data.message || "Done") + " | Shift: " + (data.shift || "") + " | Users processed: " + (data.users_processed || 0);
+};
+</script>
+<script>
+document.getElementById('removeDupBtn').onclick = async function() {
+  if(!confirm("Are you sure you want to remove duplicate registrations?")) return;
+  const res = await fetch('/admin/remove-duplicate-registrations', {method:'POST'});
+  const data = await res.json();
+  if(data.removed && data.removed.length) {
+    document.getElementById('dupResult').innerHTML =
+      `Removed ${data.count} duplicate(s):<br>` +
+      data.removed.map(n=>`• ${n}`).join('<br>');
+  } else {
+    document.getElementById('dupResult').textContent = "No duplicates found.";
+  }
+};
+</script>
+
+        <ul class="list">
+          <li>Need help? Ping the Tech team.</li>
+        </ul>
+      </section>
+    </main>
+  </div>
+
+</body>
+</html>

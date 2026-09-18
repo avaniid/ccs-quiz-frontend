@@ -1,0 +1,113 @@
+definitions:
+  models.Form_Responses:
+    properties:
+      flagsRaised:
+        type: integer
+      image:
+        type: string
+      responses:
+        items:
+          $ref: '#/definitions/models.Quiz_Answer'
+        type: array
+    type: object
+  models.Option:
+    properties:
+      id:
+        items:
+          type: integer
+        type: array
+      value:
+        type: string
+    type: object
+  models.Quiz_Answer:
+    properties:
+      answer:
+        items:
+          type: integer
+        type: array
+      questionID:
+        items:
+          type: integer
+        type: array
+    type: object
+  models.Quiz_Questions:
+    properties:
+      image:
+        description: Optional hai per question //cloudinary link
+        type: string
+      options:
+        items:
+          $ref: '#/definitions/models.Option'
+        type: array
+      question:
+        type: string
+      questionID:
+        items:
+          type: integer
+        type: array
+      shift:
+        type: integer
+    type: object
+info:
+  contact: {}
+paths:
+  /quiz/get:
+    get:
+      description: Send questions for each user to the frontend
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              items:
+                $ref: '#/definitions/models.Quiz_Questions'
+              type: array
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Get quiz Questions
+      tags:
+      - quiz
+  /quiz/submit:
+    post:
+      consumes:
+      - application/json
+      description: User submits answers
+      parameters:
+      - description: Quiz Response
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/models.Form_Responses'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Success message
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Invalid request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Submit quiz response
+      tags:
+      - quiz
+swagger: "2.0"

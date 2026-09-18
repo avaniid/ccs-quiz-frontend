@@ -1,0 +1,686 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>Registration Responses — Admin</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
+ <style>
+:root {
+  --bg: #0e101d;
+  --card: rgba(23, 26, 43, 0.85);
+  --muted: #9aa4bf;
+  --brand: #7f9cf5;
+  --brand-2: #22d3ee;
+  --text: #f0f3fa;
+  --hover: rgba(127, 156, 245, 0.12);
+  --border: rgba(255,255,255,0.08);
+  --radius: 16px;
+  --transition: all 0.3s ease;
+}
+
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  font-family: Inter, system-ui, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  line-height: 1.6;
+  overflow-x: hidden;
+}
+
+/* App layout */
+.app {
+  display: grid;
+  grid-template-rows: auto 1fr;
+  min-height: 100vh;
+  width: 100%;
+}
+
+/* Navbar */
+.nav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  background: rgba(15, 18, 32, 0.95);
+  backdrop-filter: blur(16px) saturate(160%);
+  border-bottom: 1px solid var(--border);
+  width: 100%;
+}
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 800;
+  font-size: 1.1rem;
+  letter-spacing: -0.5px;
+  flex-shrink: 0;
+}
+.brand img {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  flex-shrink: 0;
+}
+.nav-links {
+  display: flex;
+  gap: 12px;
+}
+.nav-links a {
+  color: var(--text);
+  text-decoration: none;
+  font-weight: 600;
+  padding: 6px 12px;
+  border-radius: 10px;
+  transition: var(--transition);
+  white-space: nowrap;
+  font-size: 14px;
+}
+.nav-links a:hover {
+  background: var(--hover);
+  color: var(--brand-2);
+}
+.burger {
+  display: none;
+  font-size: 24px;
+  cursor: pointer;
+  background: none;
+  border: none;
+  color: var(--text);
+  padding: 4px;
+  border-radius: 6px;
+  transition: var(--transition);
+}
+.burger:hover {
+  background: var(--hover);
+}
+
+/* Mobile menu */
+.mobile-menu {
+  display: none;
+  flex-direction: column;
+  position: absolute;
+  top: 100%;
+  left: 0; 
+  right: 0;
+  background: rgba(23, 26, 43, 0.98);
+  backdrop-filter: blur(14px);
+  padding: 8px 0;
+  border-bottom: 1px solid var(--border);
+  z-index: 99;
+}
+.mobile-menu a {
+  padding: 12px 16px;
+  text-align: left;
+  font-weight: 600;
+  color: var(--text);
+  text-decoration: none;
+  transition: var(--transition);
+  border-bottom: 1px solid rgba(255,255,255,0.05);
+}
+.mobile-menu a:hover {
+  background: var(--hover);
+  color: var(--brand-2);
+}
+.mobile-menu a:last-child {
+  border-bottom: none;
+}
+.mobile-menu.show { 
+  display: flex; 
+}
+
+/* Page content */
+.wrap {
+  max-width: 1600px;
+  margin: 12px auto 24px;
+  padding: 0 16px 16px;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  height: 100%;
+  min-height: 0; /* allow flex child overflow */
+}
+h1 {
+  margin: 0 0 16px;
+  font-size: 1.8rem;
+  text-align: center;
+  background: linear-gradient(135deg, var(--brand), var(--brand-2));
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  font-weight: 800;
+}
+
+/* Controls */
+.toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+  background: var(--card);
+  border: 1px solid var(--border);
+  padding: 10px 14px;
+  border-radius: var(--radius);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.35);
+}
+.toolbar-group { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.spacer { flex: 1 1 auto; }
+.controls { display: contents; }
+.search {
+  flex: 1;
+  min-width: 200px;
+  max-width: 400px;
+  padding: 12px 16px;
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+  background: rgba(20, 24, 40, 0.8);
+  color: var(--text);
+  font-size: 15px;
+  transition: var(--transition);
+}
+.search:focus {
+  outline: none;
+  border-color: var(--brand);
+  box-shadow: 0 0 8px rgba(127, 156, 245, 0.3);
+}
+.btn {
+  padding: 12px 20px;
+  border-radius: var(--radius);
+  font-weight: 600;
+  border: none;
+  background: linear-gradient(135deg, var(--brand), var(--brand-2));
+  color: #0f1220;
+  font-size: 15px;
+  cursor: pointer;
+  transition: var(--transition);
+  white-space: nowrap;
+  min-width: 100px;
+}
+.btn:hover {
+  opacity: 0.9;
+  transform: translateY(-1px);
+}
+
+/* Table */
+.table-container { /* flex wrapper to allow sticky footer / pagination */
+  flex: 1 1 auto;
+  min-height: 0; /* critical for flex scrolling */
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.table-wrap {
+  overflow: auto;
+  border-radius: var(--radius);
+  background: var(--card);
+  border: 1px solid var(--border);
+  flex: 1 1 auto;
+  min-height: 300px;
+  box-shadow: 0 6px 16px rgba(0,0,0,0.4);
+  position: relative;
+  -webkit-overflow-scrolling: touch;
+}
+table {
+  border-collapse: collapse;
+  width: 100%;
+  font-size: 14px;
+  min-width: 600px;
+}
+th, td {
+  padding: 10px 14px;
+  border-bottom: 1px solid rgba(255,255,255,0.05);
+  text-align: left;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 260px;
+}
+th:first-child, td:first-child { position: sticky; left: 0; background: rgba(30, 34, 56, 0.95); z-index: 6; }
+th {
+  background: rgba(30, 34, 56, 0.95);
+  font-weight: 700;
+  color: var(--muted);
+  position: sticky;
+  top: 0;
+  z-index: 5;
+  border-bottom: 2px solid var(--border);
+}
+tr {
+  transition: var(--transition);
+}
+tr:hover td {
+  background: var(--hover);
+  cursor: pointer;
+}
+tbody tr:last-child td {
+  border-bottom: none;
+}
+
+/* Modal */
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.8);
+  display: none;
+  align-items: center;
+  justify-content: center;
+  z-index: 2000;
+  padding: 12px;
+  overflow-y: auto;
+}
+.modal {
+  background: var(--card);
+  border: 1px solid var(--border);
+  padding: 20px;
+  border-radius: var(--radius);
+  max-width: 720px;
+  width: 100%;
+  max-height: 90vh;
+  overflow-y: auto;
+  box-shadow: 0 12px 30px rgba(0,0,0,0.6);
+  animation: fadeIn 0.25s ease;
+  position: relative;
+  margin: auto;
+}
+.close {
+  position: absolute;
+  top: 8px;
+  right: 12px;
+  border: none;
+  background: none;
+  color: var(--muted);
+  font-size: 24px;
+  font-weight: bold;
+  cursor: pointer;
+  transition: var(--transition);
+  z-index: 10;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+}
+.close:hover { 
+  color: var(--brand-2); 
+  background: var(--hover);
+}
+.detail-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 18px;
+  font-size: 14px;
+}
+.detail-table th,
+.detail-table td {
+  border: 1px solid var(--border);
+  padding: 12px 14px;
+  text-align: left;
+  vertical-align: top;
+}
+.detail-table th {
+  width: 30%;
+  color: var(--brand);
+  font-weight: 600;
+}
+
+/* Animations */
+@keyframes fadeIn {
+  from { opacity: 0; transform: scale(0.96); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+/* Responsive Design - Mobile First */
+@media (max-width: 900px) {
+  .nav {
+    padding: 10px 12px;
+  }
+  .nav-links { 
+    display: none; 
+  }
+  .burger { 
+    display: block; 
+  }
+  .brand {
+    font-size: 1rem;
+  }
+  .brand img {
+    width: 28px;
+    height: 28px;
+  }
+  
+  .wrap { padding: 0 10px 14px; margin: 10px auto 20px; }
+  
+  h1 { 
+    font-size: 1.5rem; 
+    margin-bottom: 12px;
+  }
+  
+  .toolbar { gap: 8px; padding: 10px 12px; }
+  .toolbar-group { width: 100%; }
+  .search { flex: 1 1 100%; width: 100%; }
+  .btn { width: 100%; }
+  
+  .table-wrap { margin: 0 -4px; }
+  
+  table { font-size: 12px; }
+  th, td { 
+    padding: 8px 10px;
+    white-space: normal;
+    max-width: 120px;
+  }
+  
+  .modal {
+    margin: 10px;
+    padding: 16px;
+    max-height: 95vh;
+  }
+  .close {
+    top: 6px;
+    right: 8px;
+    font-size: 20px;
+    width: 28px;
+    height: 28px;
+  }
+  .detail-table {
+    font-size: 13px;
+  }
+  .detail-table th,
+  .detail-table td {
+    padding: 8px 10px;
+  }
+}
+
+@media (max-width: 600px) {
+  th, td { padding: 8px 10px; max-width: 200px; }
+  h1 { font-size: 1.35rem; }
+  .toolbar { padding: 8px 10px; }
+  .search { font-size: 14px; }
+  .btn { font-size: 14px; padding: 10px 16px; }
+}
+
+/* Pagination */
+.pagination-bar { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.pagination { display: flex; gap: 4px; align-items: center; }
+.page-btn { background: rgba(255,255,255,0.06); border: 1px solid var(--border); color: var(--text); padding: 6px 10px; border-radius: 8px; cursor: pointer; font-size: 13px; min-width: 34px; text-align: center; font-weight: 600; transition: var(--transition); }
+.page-btn:hover { background: var(--hover); }
+.page-btn.active { background: linear-gradient(135deg,var(--brand),var(--brand-2)); color:#0f1220; box-shadow: 0 0 0 1px rgba(255,255,255,0.08),0 4px 10px rgba(0,0,0,0.4); }
+.page-btn[disabled] { opacity: .4; cursor: not-allowed; }
+.page-size { background: rgba(20,24,40,.8); border:1px solid var(--border); color: var(--text); border-radius: 8px; padding:6px 10px; font-size: 13px; }
+.stat-pill { background: rgba(255,255,255,0.06); padding:6px 10px; border-radius: 20px; font-size: 12px; font-weight:600; letter-spacing:.5px; }
+.divider { width:1px; height:22px; background: var(--border); }
+
+.export-btn { background: rgba(255,255,255,0.06); border:1px solid var(--border); padding:8px 14px; border-radius: 10px; font-weight:600; font-size:13px; cursor:pointer; color:var(--text); transition:var(--transition); }
+.export-btn:hover { background: var(--hover); }
+
+.status-line { font-size: 12px; color: var(--muted); }
+
+  </style>
+</head>
+<body>
+<div class="app">
+  <header class="nav">
+    <div class="brand"><img src="/static/images/ccs-logo.png" alt="CCS Logo"><span>CCS Admin</span></div>
+    <nav class="nav-links">
+      <a href="/admin/home">Home</a>
+      <a href="/admin/add-quiz-question">Add Quiz Q</a>
+      <a href="/admin/add-reg-question">Add Reg Q</a>
+      <a href="/admin/logout">Logout</a>
+    </nav>
+    <button class="burger" onclick="toggleMenu()">☰</button>
+  </header>
+  <div id="mobileMenu" class="mobile-menu">
+    <a href="/admin/home">Home</a>
+    <a href="/admin/add-quiz-question">Add Quiz Q</a>
+    <a href="/admin/add-reg-question">Add Reg Q</a>
+    <a href="/admin/logout">Logout</a>
+  </div>
+
+  <main class="wrap">
+    <h1>Registration Responses</h1>
+    <div class="toolbar">
+      <div class="toolbar-group" style="flex:2 1 320px;min-width:260px;">
+        <input id="q" class="search" placeholder="Search (Ctrl+/)..." />
+        <button id="refresh" class="btn" title="Reload data">Refresh</button>
+        <button id="exportCsv" class="export-btn" title="Download CSV">Export CSV</button>
+      </div>
+      <div class="spacer"></div>
+      <div class="toolbar-group" style="flex:1 1 auto;justify-content:flex-end;min-width:220px;">
+        <span class="stat-pill" id="totalCount">0</span>
+        <select id="pageSize" class="page-size" title="Rows per page">
+          <option value="25">25</option>
+          <option value="50" selected>50</option>
+          <option value="100">100</option>
+          <option value="250">250</option>
+        </select>
+      </div>
+    </div>
+    <div class="table-container">
+      <div id="stats" class="status-line">Loading...</div>
+      <div class="table-wrap">
+        <table id="responsesTable">
+          <thead id="thead"></thead>
+          <tbody id="tbody"></tbody>
+        </table>
+      </div>
+      <!-- <div class="pagination-bar" id="paginationBarTop"></div> -->
+      <div class="pagination-bar" id="paginationBarBottom"></div>
+    </div>
+  </main>
+</div>
+
+<!-- Modal -->
+<div id="modal" class="modal-backdrop" onclick="backdropClose(event)">
+  <div class="modal">
+    <button class="close" onclick="closeModal()">×</button>
+    <div id="modalContent"></div>
+  </div>
+</div>
+
+<script>
+  const state = {
+    columns: [],
+    rows: [],
+    filtered: [],
+    page: 1,
+    pageSize: 50,
+    search: ''
+  }
+  const thead = document.getElementById('thead')
+  const tbody = document.getElementById('tbody')
+  const qInp = document.getElementById('q')
+  const stats = document.getElementById('stats')
+  const pageSizeSel = document.getElementById('pageSize')
+  const paginationBars = [document.getElementById('paginationBarTop'), document.getElementById('paginationBarBottom')]
+  const totalCountEl = document.getElementById('totalCount')
+
+  async function loadData(){
+    stats.textContent='Loading...'
+    try {
+      const res = await fetch('/admin/api/reg-responses')
+      if(!res.ok) throw new Error('fetch failed')
+      const json = await res.json()
+      state.columns = json.columns
+      state.rows = json.rows
+      applyFilter()
+      totalCountEl.textContent = json.rows.length
+      stats.textContent = `${json.rows.length} responses · ${json.columns.length-1} questions`
+    } catch(err) {
+      console.error(err)
+      stats.textContent='Failed to load'
+    }
+  }
+
+  function pretty(s){
+    if(s==='email') return 'Email'
+    return s
+      .replace(/_/g,' ')
+      .replace(/([A-Z])/g,' $1')
+      .replace(/^./,c=>c.toUpperCase())
+      .trim()
+  }
+
+  function applyFilter(){
+    const q = state.search.toLowerCase()
+    state.filtered = !q ? [...state.rows] : state.rows.filter(r=>
+      Object.values(r).some(v => (v||'').toString().toLowerCase().includes(q))
+    )
+    // reset page if current page exceeds max
+    const maxPage = Math.max(1, Math.ceil(state.filtered.length / state.pageSize))
+    if(state.page > maxPage) state.page = maxPage
+    render()
+  }
+
+  function render(){
+    renderHeader()
+    renderBody()
+    renderPagination()
+  }
+
+  function renderHeader(){
+    thead.innerHTML=''
+    const tr=document.createElement('tr')
+    state.columns.forEach(col=>{
+      const th=document.createElement('th')
+      th.textContent=pretty(col)
+      tr.appendChild(th)
+    })
+    thead.appendChild(tr)
+  }
+
+  function sliceForPage(){
+    const start=(state.page-1)*state.pageSize
+    return state.filtered.slice(start,start+state.pageSize)
+  }
+
+  function renderBody(){
+    tbody.innerHTML=''
+    const displayRows = sliceForPage()
+    displayRows.forEach(r => {
+      const tr=document.createElement('tr')
+      tr.addEventListener('click',()=>openDetail(r))
+      state.columns.forEach(col=>{
+        const td=document.createElement('td')
+        td.textContent = (r[col]||'')
+        tr.appendChild(td)
+      })
+      tbody.appendChild(tr)
+    })
+    const from = state.filtered.length ? (state.page-1)*state.pageSize + 1 : 0
+    const to = Math.min(state.filtered.length, state.page*state.pageSize)
+    stats.textContent = `${from}-${to} of ${state.filtered.length} shown · ${state.columns.length-1} questions`
+  }
+
+  function renderPagination(){
+    const total = state.filtered.length
+    const totalPages = Math.max(1, Math.ceil(total / state.pageSize))
+    paginationBars.forEach(bar => {
+      bar.innerHTML=''
+      // left side group
+      const container=document.createElement('div')
+      container.className='pagination'
+      const prev=document.createElement('button')
+      prev.className='page-btn'
+      prev.textContent='‹'
+      prev.disabled=state.page===1
+      prev.onclick=()=>{ if(state.page>1){state.page--; renderBody(); renderPagination();} }
+      container.appendChild(prev)
+
+      const maxButtons = 7
+      let start = Math.max(1, state.page - Math.floor(maxButtons/2))
+      let end = start + maxButtons - 1
+      if(end>totalPages){ end=totalPages; start=Math.max(1,end-maxButtons+1) }
+      if(start>1){
+        container.appendChild(pageButton(1))
+        if(start>2) container.appendChild(ellipsis())
+      }
+      for(let i=start;i<=end;i++) container.appendChild(pageButton(i))
+      if(end<totalPages){
+        if(end<totalPages-1) container.appendChild(ellipsis())
+        container.appendChild(pageButton(totalPages))
+      }
+
+      const next=document.createElement('button')
+      next.className='page-btn'
+      next.textContent='›'
+      next.disabled=state.page===totalPages
+      next.onclick=()=>{ if(state.page<totalPages){state.page++; renderBody(); renderPagination();} }
+      container.appendChild(next)
+
+      const right=document.createElement('div')
+      right.style.marginLeft='auto'
+      right.style.display='flex'
+      right.style.gap='8px'
+      right.style.alignItems='center'
+      right.innerHTML=`<span class="stat-pill">Page ${state.page}/${totalPages}</span>`
+
+      bar.appendChild(container)
+      bar.appendChild(right)
+    })
+  }
+
+  function pageButton(page){
+    const b=document.createElement('button')
+    b.className='page-btn'
+    b.textContent=page
+    if(page===state.page) b.classList.add('active')
+    b.onclick=()=>{ state.page=page; renderBody(); renderPagination(); }
+    return b
+  }
+  function ellipsis(){ const span=document.createElement('span'); span.textContent='…'; span.style.padding='0 4px'; span.style.color='var(--muted)'; return span }
+
+  // Search events
+  qInp.addEventListener('input', e => { state.search = e.target.value; state.page=1; applyFilter() })
+  document.addEventListener('keydown', e => { if(e.ctrlKey && e.key==='/'){ e.preventDefault(); qInp.focus(); } })
+  document.getElementById('refresh').addEventListener('click', loadData)
+  pageSizeSel.addEventListener('change', e => { state.pageSize = parseInt(e.target.value,10); state.page=1; applyFilter() })
+
+  // CSV Export
+  document.getElementById('exportCsv').addEventListener('click', () => {
+    if(!state.columns.length) return
+    const rows = [state.columns.join(',')]
+    state.filtered.forEach(r => {
+      const line = state.columns.map(c => csvEscape(r[c] || ''))
+      rows.push(line.join(','))
+    })
+    const blob = new Blob([rows.join('\n')], {type:'text/csv;charset=utf-8;'})
+    const a = document.createElement('a')
+    a.href = URL.createObjectURL(blob)
+    a.download = 'registration_responses.csv'
+    document.body.appendChild(a)
+    a.click()
+    a.remove()
+  })
+  function csvEscape(val){
+    const s = val.toString().replace(/"/g,'""')
+    if(/[",\n]/.test(s)) return '"'+s+'"'
+    return s
+  }
+
+  // Modal detail
+  function openDetail(row){
+    let html = `<h3 style="margin-top:0">${row.email||'No Email'}</h3>`
+    html += '<table class="detail-table"><tbody>'
+    state.columns.forEach(col => {
+      if(col==='email') return
+      const ans = row[col] || ''
+      html += `<tr><th>${pretty(col)}</th><td style="white-space:pre-wrap;">${escapeHtml(ans)}</td></tr>`
+    })
+    html += '</tbody></table>'
+    document.getElementById('modalContent').innerHTML = html
+    document.getElementById('modal').style.display='flex'
+  }
+  function closeModal(){ document.getElementById('modal').style.display='none' }
+  function backdropClose(e){ if(e.target.classList.contains('modal-backdrop')) closeModal() }
+  function toggleMenu(){ document.getElementById('mobileMenu').classList.toggle('show') }
+  function escapeHtml(str){ return str.toString().replace(/[&<>" ]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',' ':'&nbsp;'}[c])) }
+
+  loadData()
+</script>
+</body>
+</html>

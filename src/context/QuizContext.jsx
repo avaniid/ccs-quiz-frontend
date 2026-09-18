@@ -1,6 +1,12 @@
 import { createContext, useContext, useState, useEffect, useCallback, useRef } from "react";
-import { fetchQuestions } from "../services/api";
+import {
+  fetchQuestions,
+  fetchQuizConfig,
+  checkAlreadySubmitted,
+  readApiError,
+} from "../services/api";
 
+// Used until /quiz/shifts reports the real length configured on the backend.
 export const EXAM_DURATION_SECONDS = 1800;
 
 const QuizContext = createContext(null);
@@ -13,26 +19,44 @@ export function QuizProvider({ children }) {
   const [visited, setVisited] = useState(new Set());
   const [warningCount, setWarningCount] = useState(0);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState("");
+  const [unauthorized, setUnauthorized] = useState(false);
   const [timeRemaining, setTimeRemaining] = useState(EXAM_DURATION_SECONDS);
   const [submitted, setSubmitted] = useState(false);
 
   const warningCountRef = useRef(0);
 
-  // Load questions on mount
+  // Load the exam length, the already-submitted flag and the questions on mount.
   useEffect(() => {
     let isMounted = true;
     async function load() {
       try {
-        const data = await fetchQuestions();
-        if (isMounted) {
-          setQuestions(data || []);
+        // The duration is public config; a failure here just leaves the default.
+        try {
+          const { durationSeconds } = await fetchQuizConfig();
+          if (isMounted && durationSeconds) {
+            setTimeRemaining(durationSeconds);
+          }
+        } catch (configError) {
+          console.warn("Could not load quiz config, using default duration:", configError);
         }
+
+        // A second attempt must not hand out the paper again.
+        if (await checkAlreadySubmitted()) {
+          if (isMounted) setSubmitted(true);
+          return;
+        }
+
+        const data = await fetchQuestions();
+        if (isMounted) setQuestions(data);
       } catch (error) {
         console.error("Failed to load questions:", error);
-      } finally {
         if (isMounted) {
-          setLoading(false);
+          setUnauthorized(error?.response?.status === 401);
+          setLoadError(readApiError(error, "Could not load your quiz."));
         }
+      } finally {
+        if (isMounted) setLoading(false);
       }
     }
     load();
@@ -54,8 +78,8 @@ export function QuizProvider({ children }) {
     }
   }, [currentIndex, questions]);
 
-  const answerQuestion = useCallback((questionId, option) => {
-    setAnswers((prev) => ({ ...prev, [questionId]: option }));
+  const answerQuestion = useCallback((questionId, optionId) => {
+    setAnswers((prev) => ({ ...prev, [questionId]: optionId }));
   }, []);
 
   const clearResponse = useCallback((questionId) => {
@@ -122,6 +146,8 @@ export function QuizProvider({ children }) {
     visited,
     warningCount,
     loading,
+    loadError,
+    unauthorized,
     timeRemaining,
     setTimeRemaining,
     submitted,

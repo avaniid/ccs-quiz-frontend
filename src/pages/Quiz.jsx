@@ -1,7 +1,7 @@
 import { useState, useCallback, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { useQuiz } from "../context/QuizContext";
-import { submitQuiz as apiSubmitQuiz } from "../services/api";
+import { submitQuiz as apiSubmitQuiz, getGoogleLoginUrl } from "../services/api";
 import useTimer from "../hooks/useTimer";
 import useTabSwitchGuard from "../hooks/useTabSwitchGuard";
 import useFullscreenGuard from "../hooks/useFullscreenGuard";
@@ -22,6 +22,8 @@ export default function Quiz() {
     currentIndex,
     markedForReview,
     loading,
+    loadError,
+    unauthorized,
     warningCount,
     timeRemaining,
     setTimeRemaining,
@@ -101,16 +103,23 @@ export default function Quiz() {
     async (reason = "manual") => {
       if (isSubmittingRef.current || submitted) return;
       isSubmittingRef.current = true;
+
+      // Grab the frame BEFORE flagging the attempt as submitted: markSubmitted
+      // flips `submitted`, whose effect navigates away and unmounts the <video>
+      // this reads from.
+      const snapshot = captureSnapshot();
+
       markSubmitted();
       try {
-        const snapshot = captureSnapshot();
-        await apiSubmitQuiz(answers, warningCount, snapshot);
+        await apiSubmitQuiz(questions, answers, warningCount, snapshot);
       } catch (err) {
+        // The attempt is over either way — the backend also rejects a second
+        // submission — so surface the failure in the logs and still move on.
         console.error("Failed to submit quiz:", err);
       }
       navigate("/submitted", { state: { reason } });
     },
-    [answers, warningCount, submitted, markSubmitted, navigate, captureSnapshot]
+    [questions, answers, warningCount, submitted, markSubmitted, navigate, captureSnapshot]
   );
 
   useEffect(() => {
@@ -125,7 +134,7 @@ export default function Quiz() {
   useTabSwitchGuard(handleViolation);
   useFullscreenGuard(handleViolation);
 
-  if (loading || questions.length === 0) {
+  if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center p-6">
         <div className="card max-w-md w-full p-8 text-center shadow-xs">
@@ -133,6 +142,40 @@ export default function Quiz() {
             Loading Quiz...
           </h2>
           <p className="text-gray-500 text-sm">Please wait while questions are loaded.</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Covers an expired session, a shift that hasn't opened yet, and a candidate
+  // with no paper assigned — the backend reports all three on /quiz/get.
+  if (loadError || questions.length === 0) {
+    return (
+      <div className="min-h-screen flex items-center justify-center p-6">
+        <div className="card max-w-md w-full p-8 text-center shadow-xs">
+          <h2 className="font-display text-xl font-bold mb-2 text-[var(--ink)]">
+            Quiz Unavailable
+          </h2>
+          <p className="text-gray-500 text-sm mb-6">
+            {loadError || "No questions have been assigned to you yet."}
+          </p>
+          {unauthorized ? (
+            <button
+              onClick={() => {
+                window.location.href = getGoogleLoginUrl();
+              }}
+              className="btn-primary cursor-pointer"
+            >
+              Sign in again
+            </button>
+          ) : (
+            <button
+              onClick={() => window.location.reload()}
+              className="btn-primary cursor-pointer"
+            >
+              Retry
+            </button>
+          )}
         </div>
       </div>
     );
@@ -248,20 +291,28 @@ export default function Quiz() {
 
               {/* Question Text */}
               <p className="font-display text-lg md:text-xl font-semibold mb-6 text-[var(--ink)]">
-                {currentQuestion.text || currentQuestion.question}
+                {currentQuestion.text}
               </p>
+
+              {/* Optional per-question image (cloudinary link from the backend) */}
+              {currentQuestion.image && (
+                <img
+                  src={currentQuestion.image}
+                  alt=""
+                  className="mb-6 max-h-72 rounded-lg border border-[var(--border)]"
+                />
+              )}
 
               {/* Options */}
               <div className="space-y-3 mb-8">
-                {(currentQuestion.options || []).map((opt, idx) => {
-                  const optValue = typeof opt === "object" ? opt.value : opt;
-                  const isSelected = currentAnswer === optValue;
+                {(currentQuestion.options || []).map((opt) => {
+                  const isSelected = currentAnswer === opt.id;
 
                   return (
                     <button
-                      key={idx}
+                      key={opt.id}
                       type="button"
-                      onClick={() => answerQuestion(currentQuestion.id, optValue)}
+                      onClick={() => answerQuestion(currentQuestion.id, opt.id)}
                       className={`w-full text-left p-4 rounded-lg border transition-colors cursor-pointer flex items-center gap-3 ${
                         isSelected
                           ? "border-[var(--blue)] bg-blue-50/50 text-[var(--ink)] font-medium"
@@ -279,7 +330,7 @@ export default function Quiz() {
                           <span className="w-2 h-2 rounded-full bg-white" />
                         )}
                       </span>
-                      <span>{optValue}</span>
+                      <span>{opt.value}</span>
                     </button>
                   );
                 })}
