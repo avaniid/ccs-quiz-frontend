@@ -148,7 +148,7 @@ document.getElementById('assignShiftsBtn').onclick = async function() {
     Anyone who has signed in appears here. Pick a shift and give them a paper directly.
     Set that shift's timing first, or their quiz will not open.
   </p>
-  <button id="loadUsersBtn" class="btn">Load signed-in users</button>
+  <button id="loadUsersBtn" class="btn">Refresh list</button>
   <div id="usersTable" style="margin-top:16px;"></div>
   <div id="assignSlotResult" style="margin-top:10px; color:#facc15; font-weight:600;"></div>
 </div>
@@ -161,7 +161,7 @@ async function loadSignedInUsers() {
     const data = await res.json();
     const users = data.users || [];
     if (!users.length) {
-      box.textContent = 'Nobody has signed in yet.';
+      box.textContent = 'Nobody has signed in yet. Ask them to sign in on the quiz site first, then press Refresh.';
       return;
     }
     const rows = users.map(u => `
@@ -208,6 +208,9 @@ async function loadSignedInUsers() {
   }
 }
 document.getElementById('loadUsersBtn').onclick = loadSignedInUsers;
+// Load on open: an admin looking for "who is waiting for a slot" should see the
+// list without having to press anything first.
+loadSignedInUsers();
 </script>
 
 <div style="margin-top:32px;">
