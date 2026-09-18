@@ -105,6 +105,8 @@ func main() {
 		authorized_admin.POST("/remove-duplicate-registrations", admin.RemoveDuplicateRegistrations)
 		authorized_admin.POST("/assign-shifts", admin.AssignShiftsAndQuestions)
 		authorized_admin.POST("/reassign-shift", admin.ReassignShiftAndQuestions)
+		authorized_admin.GET("/api/signed-in-users", admin.ListSignedInUsers)
+		authorized_admin.POST("/assign-slot", admin.AssignSlotToUser)
 		authorized_admin.GET("/set-shift-timing", func(c *gin.Context) {
 			c.HTML(200, "set_shift_timing.html", nil)
 		})

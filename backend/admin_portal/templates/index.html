@@ -139,6 +139,77 @@ document.getElementById('assignShiftsBtn').onclick = async function() {
     (data.message || "Done") + " | Created: " + (data.created || 0) + " | Skipped (already assigned): " + (data.skipped_existing || 0);
 };
 </script>
+<!-- Per-user slot assignment. Unlike "Assign Shifts & Questions" (which sweeps
+     reg_responses), this works off accounts that have simply signed in, so a
+     slot can be handed out before the registration app is live. -->
+<div style="margin-top:40px; padding-top:24px; border-top:1px solid #334155;">
+  <h3 style="margin:0 0 6px;">Give a slot to one user</h3>
+  <p class="muted" style="margin:0 0 14px;">
+    Anyone who has signed in appears here. Pick a shift and give them a paper directly.
+    Set that shift's timing first, or their quiz will not open.
+  </p>
+  <button id="loadUsersBtn" class="btn">Load signed-in users</button>
+  <div id="usersTable" style="margin-top:16px;"></div>
+  <div id="assignSlotResult" style="margin-top:10px; color:#facc15; font-weight:600;"></div>
+</div>
+<script>
+async function loadSignedInUsers() {
+  const box = document.getElementById('usersTable');
+  box.textContent = 'Loading...';
+  try {
+    const res = await fetch('/admin/api/signed-in-users');
+    const data = await res.json();
+    const users = data.users || [];
+    if (!users.length) {
+      box.textContent = 'Nobody has signed in yet.';
+      return;
+    }
+    const rows = users.map(u => `
+      <tr>
+        <td style="padding:6px 12px 6px 0;">${u.email}</td>
+        <td style="padding:6px 12px 6px 0;">${u.assigned ? 'shift ' + u.shift : '<span style="opacity:.6">no paper</span>'}</td>
+        <td style="padding:6px 12px 6px 0;">
+          <input type="number" min="1" value="1" style="width:55px" data-shift="${u.email}">
+          <input type="number" min="1" value="10" style="width:55px" data-count="${u.email}">
+          <button class="btn" style="padding:4px 12px" data-assign="${u.email}">Assign</button>
+        </td>
+      </tr>`).join('');
+    box.innerHTML = `<table style="border-collapse:collapse">
+      <tr style="text-align:left; opacity:.7">
+        <th style="padding-right:12px">Email</th>
+        <th style="padding-right:12px">Current</th>
+        <th>Shift / Questions</th>
+      </tr>${rows}</table>`;
+
+    box.querySelectorAll('[data-assign]').forEach(btn => {
+      btn.onclick = async () => {
+        const email = btn.getAttribute('data-assign');
+        const shift = parseInt(box.querySelector(`[data-shift="${email}"]`).value, 10);
+        const count = parseInt(box.querySelector(`[data-count="${email}"]`).value, 10);
+        if (!shift || shift < 1 || !count || count < 1) {
+          alert('Enter a valid shift number and question count.');
+          return;
+        }
+        if (!confirm(`Give ${email} shift ${shift} with ${count} questions?`)) return;
+        const r = await fetch('/admin/assign-slot', {
+          method: 'POST',
+          headers: {'Content-Type':'application/json'},
+          body: JSON.stringify({email, shift, questions_per_set: count})
+        });
+        const out = await r.json();
+        document.getElementById('assignSlotResult').textContent =
+          r.ok ? `${out.email} -> shift ${out.shift}, ${out.questions} questions`
+               : `Error: ${out.error}`;
+        loadSignedInUsers();
+      };
+    });
+  } catch (err) {
+    box.textContent = 'Failed to load users: ' + err;
+  }
+}
+document.getElementById('loadUsersBtn').onclick = loadSignedInUsers;
+</script>
+
 <div style="margin-top:32px;">
   <label for="reShift" style="font-weight:600;">Shift Number:</label>
   <input type="number" id="reShift" min="1" value="1" style="width:60px; margin:0 8px;">
