@@ -110,6 +110,22 @@ export async function checkAlreadySubmitted() {
 }
 
 /**
+ * Raises a "waiting for a shift" flag the admin portal can see. Testing aid for
+ * before the registration app is live; resolves to {status} which is "pending",
+ * "assigned" (a paper already exists) or "none".
+ */
+export async function requestSlot() {
+  const { data } = await api.post("/quiz/request-slot", {});
+  return data?.status ?? "pending";
+}
+
+/** Where this candidate stands: "assigned", "pending" or "none". */
+export async function fetchSlotStatus() {
+  const { data } = await api.get("/quiz/slot-status");
+  return data?.status ?? "none";
+}
+
+/**
  * Maps the answers map back onto the id arrays the backend issued and posts the
  * attempt. Field names match the Go struct (`Image`, `Responses`, `FlagsRaised`).
  */

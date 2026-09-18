@@ -143,11 +143,13 @@ document.getElementById('assignShiftsBtn').onclick = async function() {
      reg_responses), this works off accounts that have simply signed in, so a
      slot can be handed out before the registration app is live. -->
 <div style="margin-top:40px; padding-top:24px; border-top:1px solid #334155;">
-  <h3 style="margin:0 0 6px;">Give a slot to one user</h3>
-  <p class="muted" style="margin:0 0 14px;">
-    Anyone who has signed in appears here. Pick a shift and give them a paper directly.
-    Set that shift's timing first, or their quiz will not open.
+  <h3 style="margin:0 0 6px;">Time slot requests</h3>
+  <p class="muted" style="margin:0 0 6px;">
+    Anyone who has signed in appears here; those who pressed "Request a time slot"
+    are marked REQUESTED and listed first. Pick a shift and give them a paper.
+    Set that shift's timing too, or their quiz will not open.
   </p>
+  <p id="requestCount" style="margin:0 0 14px; font-weight:700; color:#facc15;"></p>
   <button id="loadUsersBtn" class="btn">Refresh list</button>
   <div id="usersTable" style="margin-top:16px;"></div>
   <div id="assignSlotResult" style="margin-top:10px; color:#facc15; font-weight:600;"></div>
@@ -164,10 +166,19 @@ async function loadSignedInUsers() {
       box.textContent = 'Nobody has signed in yet. Ask them to sign in on the quiz site first, then press Refresh.';
       return;
     }
+    const waiting = users.filter(u => u.requested && !u.assigned).length;
+    document.getElementById('requestCount').textContent =
+      waiting ? `${waiting} waiting for a slot` : 'No pending requests';
     const rows = users.map(u => `
       <tr>
         <td style="padding:6px 12px 6px 0;">${u.email}</td>
-        <td style="padding:6px 12px 6px 0;">${u.assigned ? 'shift ' + u.shift : '<span style="opacity:.6">no paper</span>'}</td>
+        <td style="padding:6px 12px 6px 0;">${
+          u.assigned
+            ? 'shift ' + u.shift
+            : u.requested
+              ? `<span style="color:#facc15; font-weight:700">REQUESTED</span> <span style="opacity:.6">${u.requested_at}</span>`
+              : '<span style="opacity:.6">no paper</span>'
+        }</td>
         <td style="padding:6px 12px 6px 0;">
           <input type="number" min="1" value="1" style="width:55px" data-shift="${u.email}">
           <input type="number" min="1" value="10" style="width:55px" data-count="${u.email}">
@@ -177,7 +188,7 @@ async function loadSignedInUsers() {
     box.innerHTML = `<table style="border-collapse:collapse">
       <tr style="text-align:left; opacity:.7">
         <th style="padding-right:12px">Email</th>
-        <th style="padding-right:12px">Current</th>
+        <th style="padding-right:12px">Status</th>
         <th>Shift / Questions</th>
       </tr>${rows}</table>`;
 

@@ -2,6 +2,8 @@ package admin
 
 import (
 	"net/http"
+	"sort"
+	"time"
 
 	models "ccs.quizportal/Models"
 	"ccs.quizportal/db"
@@ -19,9 +21,11 @@ import (
 // flow and the bulk assignment are untouched.
 
 type pendingUser struct {
-	Email    string `json:"email"`
-	Shift    int    `json:"shift"`    // 0 when no paper assigned yet
-	Assigned bool   `json:"assigned"`
+	Email       string `json:"email"`
+	Shift       int    `json:"shift"` // 0 when no paper assigned yet
+	Assigned    bool   `json:"assigned"`
+	Requested   bool   `json:"requested"`    // raised a slot request and is waiting
+	RequestedAt string `json:"requested_at"` // local time, "" when never requested
 }
 
 // ListSignedInUsers reports every account that has signed in, and whether it
@@ -48,8 +52,29 @@ func ListSignedInUsers(c *gin.Context) {
 			row.Assigned = true
 			row.Shift = uq.Shift
 		}
+
+		var reqDoc struct {
+			RequestedAt time.Time `bson:"requested_at"`
+		}
+		if err := db.Slot_Requests.Coll.FindOne(
+			db.Slot_Requests.Context, bson.M{"userID": u.UserId},
+		).Decode(&reqDoc); err == nil {
+			row.Requested = true
+			row.RequestedAt = reqDoc.RequestedAt.Local().Format("02 Jan, 15:04")
+		}
 		users = append(users, row)
 	}
+
+	// Waiting-and-unassigned first: that is the queue the admin is here to clear.
+	sort.SliceStable(users, func(i, j int) bool {
+		wi := users[i].Requested && !users[i].Assigned
+		wj := users[j].Requested && !users[j].Assigned
+		if wi != wj {
+			return wi
+		}
+		return users[i].Email < users[j].Email
+	})
+
 	c.JSON(http.StatusOK, gin.H{"users": users})
 }
 
@@ -113,6 +138,9 @@ func AssignSlotToUser(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to assign paper"})
 		return
 	}
+
+	// The request has been answered, so drop it from the waiting queue.
+	db.Slot_Requests.Coll.DeleteOne(db.Slot_Requests.Context, bson.M{"userID": user.UserId})
 
 	c.JSON(http.StatusOK, gin.H{
 		"message":   "slot assigned",

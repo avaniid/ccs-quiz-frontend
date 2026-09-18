@@ -128,6 +128,8 @@ func main() {
 		authorized_user.POST("/quiz/submit", quiz.SubmitQuiz)
 		// authorized_user.GET("/quiz/shifts", quiz.GetAppConfig)
 		authorized_user.POST("/quiz/submitted", quiz.IsSubmitted)
+		authorized_user.POST("/quiz/request-slot", quiz.RequestSlot)
+		authorized_user.GET("/quiz/slot-status", quiz.SlotStatus)
 	}
 
 
