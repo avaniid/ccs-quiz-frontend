@@ -2,6 +2,26 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { verifySession } from "../services/api";
 
+// Turn a getUserMedia rejection into something a candidate can act on. The
+// generic "access is required" message hid real causes (device in use by another
+// app, no camera attached, blocked at the OS level) during production testing.
+function describeMediaError(err) {
+  switch (err?.name) {
+    case "NotAllowedError":
+      return "You blocked camera or microphone access. Click the camera icon in your browser's address bar, allow both, then try again.";
+    case "NotFoundError":
+      return "No camera or microphone was found. Connect one and try again.";
+    case "NotReadableError":
+      return "Your camera or microphone is being used by another app. Close it (Zoom, Meet, Teams, another tab) and try again.";
+    case "SecurityError":
+      return "Camera access needs a secure connection. Open this page over https.";
+    default:
+      return `Camera and microphone access is required to start the test. (${
+        err?.name || "unknown error"
+      })`;
+  }
+}
+
 export default function Instructions() {
   const [error, setError] = useState("");
   const navigate = useNavigate();
@@ -19,20 +39,29 @@ export default function Instructions() {
   }, [navigate]);
 
   const handleAccept = async () => {
-    // Fullscreen first, and before any await: requestFullscreen needs a live
-    // user gesture, and the getUserMedia permission prompt consumes the one
-    // from this click. Entering it here also keeps useFullscreenGuard on the
-    // quiz page from retrying (and failing) without a gesture of its own.
-    const fullscreenRequest = document.fullscreenElement
-      ? Promise.resolve()
-      : document.documentElement.requestFullscreen?.().catch(() => {});
-
+    setError("");
     try {
-      await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
-      await fullscreenRequest;
+      // Ask for camera and mic BEFORE going fullscreen. Browsers suppress or
+      // hide permission prompts while a page is entering fullscreen, so a
+      // candidate on a first visit never gets to grant access. (This only shows
+      // up on a fresh origin — on localhost the permission is already
+      // remembered, so no prompt is needed and the bug stays hidden.)
+      const probe = await navigator.mediaDevices.getUserMedia({
+        video: true,
+        audio: true,
+      });
+      // Release it immediately; useCameraStream opens its own stream on /quiz
+      // with the constraints the proctoring guards need.
+      probe.getTracks().forEach((t) => t.stop());
+
+      // Best effort: the prompt may have used up this click's activation, in
+      // which case the quiz page's guard picks it up on the next interaction.
+      if (!document.fullscreenElement) {
+        await document.documentElement.requestFullscreen?.().catch(() => {});
+      }
       navigate("/quiz");
     } catch (err) {
-      setError("Camera and microphone access is required to start the test.");
+      setError(describeMediaError(err));
     }
   };
 

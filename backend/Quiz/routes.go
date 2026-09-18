@@ -1,6 +1,7 @@
 package quiz
 
 import (
+	"errors"
 	"net/http"
 	"os"
 	"strconv"
@@ -45,7 +46,15 @@ func GetQuizQues(c *gin.Context) {
 	questions, err := GetQuizQuestions(c)
 
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"message": err.Error()})
+		// These three are the candidate's own situation, not a server fault.
+		switch {
+		case errors.Is(err, ErrAlreadySubmitted),
+			errors.Is(err, ErrNoPaperAssigned),
+			errors.Is(err, ErrQuizNotStarted):
+			c.JSON(http.StatusForbidden, gin.H{"message": err.Error()})
+		default:
+			c.JSON(http.StatusInternalServerError, gin.H{"message": err.Error()})
+		}
 		return
 	}
 	c.JSON(http.StatusOK, gin.H{"questions": questions})

@@ -250,10 +250,27 @@ export default function Quiz() {
           <h2 className="font-display text-xl font-bold mb-2 text-red-600">
             Camera/Microphone Required
           </h2>
-          <p className="text-gray-500 text-sm">
-            Proctoring could not access your camera and microphone. Please allow
-            access and reload this page to continue.
+          <p className="text-gray-500 text-sm mb-2">
+            {cameraError?.name === "NotAllowedError"
+              ? "Camera or microphone access was blocked. Click the camera icon in your browser's address bar, allow both, then reload."
+              : cameraError?.name === "NotReadableError"
+                ? "Your camera or microphone is being used by another app. Close it (Zoom, Meet, Teams, another tab) and reload."
+                : cameraError?.name === "NotFoundError"
+                  ? "No camera or microphone was found. Connect one and reload."
+                  : "Proctoring could not access your camera and microphone. Please allow access and reload this page to continue."}
           </p>
+          {/* The error name is what makes a report like "camera nahi chal raha"
+              actionable, so keep it visible rather than only in the console. */}
+          <p className="text-xs text-gray-400 mb-6">
+            {cameraError?.name || "Error"}
+            {cameraError?.message ? `: ${cameraError.message}` : ""}
+          </p>
+          <button
+            onClick={() => window.location.reload()}
+            className="btn-primary cursor-pointer"
+          >
+            Reload
+          </button>
         </div>
       </div>
     );

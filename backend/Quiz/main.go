@@ -20,6 +20,15 @@ import (
 
 // const shift int = 1 //later will make it central , time mapped
 
+// Conditions that are the candidate's situation, not a server failure. Handlers
+// map these to 4xx so a finished or too-early candidate is not reported as a
+// backend error (and does not show up as one in monitoring).
+var (
+	ErrAlreadySubmitted = errors.New("you have already submitted this quiz")
+	ErrNoPaperAssigned  = errors.New("no quiz has been assigned to your account yet")
+	ErrQuizNotStarted   = errors.New("quiz not started for your shift yet")
+)
+
 var (
 	shiftsMu  sync.RWMutex
 	shiftsMap map[int]models.Shift
@@ -69,6 +78,18 @@ func GetQuizQuestions(c *gin.Context) ([]models.Quiz_Questions, error) {
 		return nil, err
 	}
 
+	// Refuse to hand the paper back out once the attempt is over. The answers
+	// are already protected (a second submit cannot overwrite the first), but
+	// there is no reason to keep serving the questions to a finished candidate.
+	var done struct {
+		Submitted bool `bson:"quiz_submitted"`
+	}
+	if err := db.Updates.Coll.FindOne(
+		db.Updates.Context, bson.M{"userID": userID},
+	).Decode(&done); err == nil && done.Submitted {
+		return nil, ErrAlreadySubmitted
+	}
+
 	var uq models.UserQuestions
 	filter := bson.M{"userID": userID}
 	err = db.User_Questions.Coll.FindOne(db.User_Questions.Context, filter).Decode(&uq)
@@ -76,7 +97,7 @@ func GetQuizQuestions(c *gin.Context) ([]models.Quiz_Questions, error) {
 		// The candidate is authenticated but no paper has been assigned to them
 		// yet (admin has not run "Assign Shifts"). Say so instead of surfacing
 		// the raw driver error to them.
-		return nil, errors.New("no quiz has been assigned to your account yet")
+		return nil, ErrNoPaperAssigned
 	}
 	if err != nil {
 		log.Printf("failed to load questions for user %v: %v", userID, err)
@@ -89,7 +110,7 @@ func GetQuizQuestions(c *gin.Context) ([]models.Quiz_Questions, error) {
 	}
 	now := time.Now().In(shiftInfo.Start.Location())
 	if now.Before(shiftInfo.Start) {
-		return nil, errors.New("quiz not started for your shift yet")
+		return nil, ErrQuizNotStarted
 	}
 
 	dbEntry := models.Updates{
@@ -151,17 +172,24 @@ func RecieveResponse(c *gin.Context) {
 		Responses: resp.Responses,
 	}
 
-	_, err = db.Quiz_Responses.Coll.UpdateOne(
+	res, err := db.Quiz_Responses.Coll.UpdateOne(
 		db.Quiz_Responses.Context,
 		bson.M{"userID": userID},
 		bson.M{"$setOnInsert": dbResponses},
 		options.Update().SetUpsert(true),
 	)
 	if writeErr, ok := err.(mongo.WriteException); ok && writeErr.HasErrorCode(11000) {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "User has already submitted"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "You have already submitted this quiz"})
 		return
 	} else if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to store responses"})
+		return
+	}
+	// $setOnInsert leaves an existing attempt untouched and reports no error, so
+	// without this the caller was told "Submission Successful" while nothing was
+	// saved. UpsertedCount is 0 exactly when an attempt was already on record.
+	if res.UpsertedCount == 0 {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "You have already submitted this quiz"})
 		return
 	}
 
