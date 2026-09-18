@@ -90,7 +90,7 @@ func main() {
 	})
 	router.GET("/admin/login", admin.ShowLogin)
 	router.POST("/admin/login", admin.HandleLogin)
-	router.Static("/static", "./backend/admin_portal/static")
+	router.Static("/static", "./admin_portal/static")
 	router.GET("/quiz/shifts", quiz.GetAppConfig)
 
 	authorized_admin := router.Group("/admin", admin.MainAdminMiddleware)
