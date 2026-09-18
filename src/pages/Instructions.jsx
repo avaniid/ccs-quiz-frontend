@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { verifySession } from "../services/api";
+import { acquireCameraStream } from "../hooks/cameraStore";
 
 // Turn a getUserMedia rejection into something a candidate can act on. The
 // generic "access is required" message hid real causes (device in use by another
@@ -46,13 +47,11 @@ export default function Instructions() {
       // candidate on a first visit never gets to grant access. (This only shows
       // up on a fresh origin — on localhost the permission is already
       // remembered, so no prompt is needed and the bug stays hidden.)
-      const probe = await navigator.mediaDevices.getUserMedia({
-        video: true,
-        audio: true,
-      });
-      // Release it immediately; useCameraStream opens its own stream on /quiz
-      // with the constraints the proctoring guards need.
-      probe.getTracks().forEach((t) => t.stop());
+      //
+      // The stream stays open and is handed to the quiz page. Closing it here
+      // and reopening there made Windows fail the second open with
+      // NotReadableError, because the device was still being released.
+      await acquireCameraStream();
 
       // Best effort: the prompt may have used up this click's activation, in
       // which case the quiz page's guard picks it up on the next interaction.

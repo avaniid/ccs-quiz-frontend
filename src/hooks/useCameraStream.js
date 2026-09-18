@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { acquireCameraStream } from "./cameraStore";
 
 export default function useCameraStream(onViolation) {
   const onViolationRef = useRef(onViolation);
@@ -18,14 +19,10 @@ export default function useCameraStream(onViolation) {
 
     async function start() {
       try {
-        const mediaStream = await navigator.mediaDevices.getUserMedia({
-          video: { width: 640, height: 480, facingMode: "user" },
-          audio: { channelCount: 1, echoCancellation: false, noiseSuppression: false },
-        });
-        if (cancelled) {
-          mediaStream.getTracks().forEach((track) => track.stop());
-          return;
-        }
+        // Reuses the stream the instructions page already opened, instead of
+        // closing the device and racing to reopen it.
+        const mediaStream = await acquireCameraStream();
+        if (cancelled) return;
         streamRef.current = mediaStream;
         mediaStream.getTracks().forEach((track) => {
           track.addEventListener("ended", handleTrackEnded);
@@ -46,10 +43,15 @@ export default function useCameraStream(onViolation) {
       if (mediaStream) {
         mediaStream.getTracks().forEach((track) => {
           track.removeEventListener("ended", handleTrackEnded);
-          track.stop();
         });
         streamRef.current = null;
       }
+      // Deliberately NOT releasing the device here. React remounts this effect
+      // (StrictMode in development, and any re-render of the route), and
+      // stopping the camera only to reopen it a moment later is exactly the
+      // race that broke proctoring. The stream is released once the attempt
+      // ends — see submitQuiz in Quiz.jsx — and the browser reclaims it when
+      // the tab closes.
     };
   }, []);
 

@@ -14,6 +14,7 @@ import useCameraStream from "../hooks/useCameraStream";
 import useFaceGuard from "../hooks/useFaceGuard";
 import useObjectGuard from "../hooks/useObjectGuard";
 import useVoiceGuard, { ENROLL_SECONDS } from "../hooks/useVoiceGuard";
+import { releaseCameraStream } from "../hooks/cameraStore";
 import WarningModal from "../components/WarningModal";
 import VoiceEnrollmentOverlay from "../components/VoiceEnrollmentOverlay";
 
@@ -150,6 +151,9 @@ export default function Quiz() {
         // submission — so surface the failure in the logs and still move on.
         console.error("Failed to submit quiz:", err);
       }
+      // Attempt is over: turn the camera and mic off so the indicator light
+      // does not stay on after the candidate leaves the quiz.
+      releaseCameraStream();
       navigate("/submitted", { state: { reason } });
     },
     [questions, answers, warningCount, submitted, markSubmitted, navigate, captureSnapshot]
