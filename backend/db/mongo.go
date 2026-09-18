@@ -54,7 +54,15 @@ func Init() error {
 
 	log.Println("Successfully Conected to Mongo....")
 
-	DATABASE = client.Database("Recruitments_2025")
+	// The database name is configurable so a new recruitment cycle can start on
+	// a clean namespace without touching code (and without inheriting an older
+	// cycle's registrations, papers and responses from the same cluster).
+	dbName := os.Getenv("MONGO_DB")
+	if dbName == "" {
+		dbName = "Recruitments_2025"
+	}
+	log.Printf("Using database: %s", dbName)
+	DATABASE = client.Database(dbName)
 
 	Registeration_Questions = Collection{DATABASE.Collection("reg_ques"), ctx}
 	AUTH = Collection{DATABASE.Collection("auth"), ctx}
