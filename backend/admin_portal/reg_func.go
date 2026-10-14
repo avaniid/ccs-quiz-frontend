@@ -42,24 +42,20 @@ func AddRegQuestion(q *models.Questions, questiontype bool) error {
 }
 
 func MainAdminMiddleware(c *gin.Context) {
-	auth, err := c.Cookie("admin_auth")
-	if err != nil || auth != "main" {
+	if Role(c) != RoleMain {
 		c.Redirect(http.StatusFound, "/admin/login")
 		c.Abort()
 		return
 	}
-	// c.Redirect(http.StatusFound, "/admin/home")
 	c.Next()
 }
 
 func ViewAdminMiddleware(c *gin.Context) {
-	auth, err := c.Cookie("admin_auth")
-	if err != nil || auth != "view" {
+	if Role(c) != RoleView {
 		c.Redirect(http.StatusFound, "/admin/login")
 		c.Abort()
 		return
 	}
-	// c.Redirect(http.StatusFound, "/admin/view")
 	c.Next()
 }
 
@@ -93,12 +89,12 @@ func HandleLogin(c *gin.Context) {
 	}
 
 	if user1 != "" && username == user1 && password == pass1 {
-		c.SetCookie("admin_auth", "main", 3600, "/", "", true, true)
+		setAdminCookie(c, RoleMain)
 		c.Redirect(http.StatusFound, "/admin/home")
 		return
 	}
 	if user2 != "" && username == user2 && password == pass2 {
-		c.SetCookie("admin_auth", "view", 3600, "/", "", true, true)
+		setAdminCookie(c, RoleView)
 		c.Redirect(http.StatusFound, "/admin/view")
 		return
 	}

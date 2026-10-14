@@ -91,10 +91,38 @@ export async function fetchQuizConfig() {
   };
 }
 
-/** The questions assigned to this candidate's shift. */
+/**
+ * The questions assigned to this candidate's shift, plus the server-decided
+ * deadline. `deadlineMs` is already converted to this browser's clock (using
+ * the server's own time as reference), so a wrong local clock cannot add or
+ * remove minutes. It is null against an older backend that sends no deadline.
+ */
 export async function fetchQuestions() {
   const { data } = await api.get("/quiz/get");
-  return (data?.questions ?? []).map(normalizeQuestion);
+  const receivedAt = Date.now();
+  const deadline = Date.parse(data?.deadline ?? "");
+  const serverTime = Date.parse(data?.server_time ?? "");
+  const skew = Number.isFinite(serverTime) ? serverTime - receivedAt : 0;
+  return {
+    questions: (data?.questions ?? []).map(normalizeQuestion),
+    deadlineMs: Number.isFinite(deadline) ? deadline - skew : null,
+    flags: Number(data?.flags) || 0,
+    strikes: Number(data?.strikes) || 0,
+  };
+}
+
+/**
+ * Reports one proctoring violation to the server as it happens, so the count
+ * survives a reload. Fire-and-forget: a lost report must never interrupt the
+ * candidate's test.
+ */
+export function reportViolation(type, strike) {
+  api.post("/quiz/flag", { type, strike }).catch(() => {});
+}
+
+/** True when the server rejected a submit because one is already on record. */
+export function isAlreadySubmittedError(err) {
+  return err?.response?.status === 400 && err?.response?.data?.code === "already_submitted";
 }
 
 /**

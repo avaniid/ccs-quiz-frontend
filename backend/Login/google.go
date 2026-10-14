@@ -5,8 +5,10 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"strings"
 	"time"
 
+	"ccs.quizportal/db"
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/markbates/goth/gothic"
@@ -40,6 +42,15 @@ func HandleAuthCallback(c *gin.Context) {
 		c.AbortWithError(http.StatusInternalServerError, err)
 		return
 	}
+	// Optional allowlist, e.g. ALLOWED_EMAIL_DOMAINS=thapar.edu. Unset = any
+	// Google account may sign in.
+	if !emailAllowed(user.Email) {
+		log.Printf("oauth callback: rejected %s (domain not allowed)", user.Email)
+		msg := "Please sign in with your " + os.Getenv("ALLOWED_EMAIL_DOMAINS") + " account."
+		c.Redirect(http.StatusTemporaryRedirect, frontendRedirectUrl+"#error="+url.QueryEscape(msg))
+		return
+	}
+
 	uid := GenerateUserUUID(user.Email)
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
 		"email": user.Email,
@@ -85,39 +96,41 @@ func setSessionCookie(c *gin.Context, value string, maxAge int) {
 	c.SetCookie("session_token", value, maxAge, "/", "", secure, true)
 }
 
+func emailAllowed(email string) bool {
+	allowed := os.Getenv("ALLOWED_EMAIL_DOMAINS")
+	if strings.TrimSpace(allowed) == "" {
+		return true
+	}
+	email = strings.ToLower(strings.TrimSpace(email))
+	for _, d := range strings.Split(allowed, ",") {
+		d = strings.ToLower(strings.TrimPrefix(strings.TrimSpace(d), "@"))
+		if d != "" && strings.HasSuffix(email, "@"+d) {
+			return true
+		}
+	}
+	return false
+}
+
 // AuthMiddleware guards the routes the SPA calls over XHR, so an unauthenticated
 // request gets a 401 it can act on. Redirecting here would only produce a
 // "headers already written" warning after the abort, and the browser would
 // follow it into an opaque CORS failure instead of surfacing the 401.
 func AuthMiddleware(c *gin.Context) {
-	tokenStr, err := SessionToken(c)
-	if err != nil {
-		c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "Missing session token"})
+	if _, status, err := loadSession(c); err != nil {
+		c.AbortWithStatusJSON(status, gin.H{"error": err.Error()})
 		return
 	}
-
-	jwtSecret := os.Getenv("JWT_SECRET")
-	if jwtSecret == "" {
-		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": "JWT secret not set"})
-		return
-	}
-
-	token, err := jwt.Parse(tokenStr, func(token *jwt.Token) (interface{}, error) {
-		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
-			return nil, jwt.ErrSignatureInvalid
-		}
-		return []byte(jwtSecret), nil
-	})
-
-	if err != nil || !token.Valid {
-		c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "Invalid or expired session token"})
-		return
-	}
-
 	c.Next()
 }
 
+// Logout clears the cookie and retires the token server side, so a copy left
+// in another tab or on a shared machine stops working too.
 func Logout(c *gin.Context) {
+	if s, _, err := loadSession(c); err == nil {
+		db.AUTH.Coll.UpdateOne(db.AUTH.Context,
+			map[string]interface{}{"userEmail": s.Email},
+			map[string]interface{}{"$set": map[string]interface{}{"sessionToken": ""}})
+	}
 	setSessionCookie(c, "", -1)
 	c.JSON(200, gin.H{"message": "Logged out"})
 }

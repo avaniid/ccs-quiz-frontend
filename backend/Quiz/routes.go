@@ -2,9 +2,9 @@ package quiz
 
 import (
 	"errors"
+	"log"
 	"net/http"
-	"os"
-	"strconv"
+	"time"
 
 	models "ccs.quizportal/Models"
 	"ccs.quizportal/db"
@@ -43,27 +43,38 @@ func SubmitQuiz(c *gin.Context) {
 // @Router       /quiz/get [get]
 func GetQuizQues(c *gin.Context) {
 
-	questions, err := GetQuizQuestions(c)
+	paper, err := GetQuizQuestions(c)
 
 	if err != nil {
-		// These three are the candidate's own situation, not a server fault.
+		// These are the candidate's own situation, not a server fault.
 		switch {
 		case errors.Is(err, ErrAlreadySubmitted),
 			errors.Is(err, ErrNoPaperAssigned),
-			errors.Is(err, ErrQuizNotStarted):
+			errors.Is(err, ErrQuizNotStarted),
+			errors.Is(err, ErrShiftOver),
+			errors.Is(err, ErrTimeUp):
 			c.JSON(http.StatusForbidden, gin.H{"message": err.Error()})
 		default:
 			c.JSON(http.StatusInternalServerError, gin.H{"message": err.Error()})
 		}
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{"questions": questions})
+	// server_time lets the browser correct for a wrong local clock when it
+	// turns the deadline into a countdown.
+	c.JSON(http.StatusOK, gin.H{
+		"questions":   paper.Questions,
+		"deadline":    paper.Deadline,
+		"server_time": time.Now(),
+		"flags":       paper.Flags,
+		"strikes":     paper.Strikes,
+	})
 
 }
 
 func GetScores(c *gin.Context) {
 	err := CalcScore()
 	if(err!=nil){
+		log.Printf("calcScore failed: %v", err)
 		c.JSON(http.StatusInternalServerError,gin.H{"error":"nhi hua score calc :/ "})
 		return
 	}
@@ -86,15 +97,8 @@ func GetAppConfig(c *gin.Context) {
 		}
 	}
 
-	testDuration := 80
-	if v := os.Getenv("TEST_DURATION"); v != "" {
-		if n, err := strconv.Atoi(v); err == nil && n > 0 {
-			testDuration = n
-		}
-	}
-
 	c.JSON(http.StatusOK, gin.H{
 		"shifts":        shifts,
-		"test_duration": testDuration,
+		"test_duration": int(TestDuration().Minutes()),
 	})
 }

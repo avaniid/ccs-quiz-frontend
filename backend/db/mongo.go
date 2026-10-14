@@ -78,8 +78,47 @@ func Init() error {
 	Shifts = Collection{DATABASE.Collection("shift_data"), ctx}
 	Slot_Requests = Collection{DATABASE.Collection("slot_requests"), ctx}
 
+	ensureIndexes(ctx)
 	return nil
 
+}
+
+// ensureIndexes makes every per-candidate lookup an index hit (they were all
+// collection scans, which hurts when a whole shift opens the paper at once)
+// and lets Mongo itself refuse a second row for the same candidate, which is
+// what actually closes the double-submit race that $setOnInsert alone leaves.
+//
+// A failure is logged, not fatal: a database that already holds duplicates
+// (older builds allowed them) cannot take a unique index until they are
+// cleaned up, and that must not stop the server from starting.
+func ensureIndexes(ctx context.Context) {
+	unique := func(field string) mongo.IndexModel {
+		return mongo.IndexModel{
+			Keys:    bson.D{{Key: field, Value: 1}},
+			Options: options.Index().SetUnique(true),
+		}
+	}
+	plan := []struct {
+		coll  Collection
+		index mongo.IndexModel
+	}{
+		{AUTH, unique("userEmail")},
+		{AUTH, unique("userID")},
+		{Registeration_Responses, unique("userID")},
+		{User_Questions, unique("userID")},
+		{Updates, unique("userID")},
+		{Quiz_Responses, unique("userID")},
+		{Quiz_Track, unique("userID")},
+		{Slot_Requests, unique("userID")},
+		{Shifts, unique("shift")},
+		{Quiz_Answers, unique("questionID")},
+	}
+	for _, p := range plan {
+		if _, err := p.coll.Coll.Indexes().CreateOne(ctx, p.index); err != nil {
+			log.Printf("WARNING: could not create unique index on %s: %v (remove duplicate rows, then restart)",
+				p.coll.Coll.Name(), err)
+		}
+	}
 }
 
 func (db *Collection) Sync(bsonM bson.M, entry any) error {

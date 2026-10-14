@@ -136,7 +136,9 @@ document.getElementById('assignShiftsBtn').onclick = async function() {
   });
   const data = await res.json();
   document.getElementById('assignShiftsResult').textContent =
-    (data.message || "Done") + " | Created: " + (data.created || 0) + " | Skipped (already assigned): " + (data.skipped_existing || 0);
+    (res.ok ? (data.message || "Done") : "Error: " + (data.error || res.status)) +
+    " | Created: " + (data.created || 0) + " | Skipped (already assigned): " + (data.skipped_existing || 0) +
+    (data.warning ? " | Warning: " + data.warning : "");
 };
 </script>
 <!-- Per-user slot assignment. Unlike "Assign Shifts & Questions" (which sweeps
@@ -249,7 +251,7 @@ loadSignedInUsers();
   <input type="number" id="reShift" min="1" value="1" style="width:60px; margin:0 8px;">
   <label for="reQuestionsPerSet" style="font-weight:600;">Questions per Set:</label>
   <input type="number" id="reQuestionsPerSet" min="1" value="10" style="width:60px; margin:0 8px;">
-  <button id="reassignShiftBtn" class="btn">Reassign Shift &amp; Questions</button>
+  <button id="reassignShiftBtn" class="btn">Move Absentees to Shift</button>
   <div id="reassignShiftResult" style="margin-top:10px; color:#facc15; font-weight:600;"></div>
 </div>
 <script>
@@ -264,7 +266,7 @@ document.getElementById('reassignShiftBtn').onclick = async function() {
     alert("Enter a valid number of questions per set.");
     return;
   }
-  if (!confirm("Are you sure you want to reassign shift and questions for all pending users?")) return;
+  if (!confirm("Move every absentee (has a paper, never opened it, and their own shift is already over) into this shift?")) return;
   const res = await fetch('/admin/reassign-shift', {
     method: 'POST',
     headers: {'Content-Type':'application/json'},
@@ -272,7 +274,10 @@ document.getElementById('reassignShiftBtn').onclick = async function() {
   });
   const data = await res.json();
   document.getElementById('reassignShiftResult').textContent =
-    (data.message || "Done") + " | Shift: " + (data.shift || "") + " | Users processed: " + (data.users_processed || 0);
+    (res.ok ? (data.message || "Done") : "Error: " + (data.error || res.status)) +
+    " | Shift: " + (data.shift || "") + " | Users moved: " + (data.created || 0) +
+    (data.warning ? " | Warning: " + data.warning : "") +
+    (data.warning_timing ? " | " + data.warning_timing : "");
 };
 </script>
 <script>
@@ -283,10 +288,25 @@ document.getElementById('removeDupBtn').onclick = async function() {
   if(data.removed && data.removed.length) {
     document.getElementById('dupResult').innerHTML =
       `Removed ${data.count} duplicate(s):<br>` +
-      data.removed.map(n=>`• ${n}`).join('<br>');
+      data.removed.map(n=>`• ${n.name || ''} ${n.email || ''}`).join('<br>');
   } else {
     document.getElementById('dupResult').textContent = "No duplicates found.";
   }
+};
+</script>
+
+<div style="margin-top:32px; padding-top:24px; border-top:1px solid #334155;">
+  <h3 style="margin:0 0 6px;">Scores</h3>
+  <p class="muted" style="margin:0 0 10px;">Run after the exam. Marks (+4 / -1) are written to quiz_track.</p>
+  <button id="calcScoreBtn" class="btn">Calculate Scores</button>
+  <div id="calcScoreResult" style="margin-top:10px; color:#facc15; font-weight:600;"></div>
+</div>
+<script>
+document.getElementById('calcScoreBtn').onclick = async function() {
+  if (!confirm("Recalculate marks for every submitted attempt?")) return;
+  const res = await fetch('/admin/calcScore', {method:'POST'});
+  const data = await res.json();
+  document.getElementById('calcScoreResult').textContent = res.ok ? data.success : ("Error: " + data.error);
 };
 </script>
 

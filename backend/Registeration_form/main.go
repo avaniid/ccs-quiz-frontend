@@ -8,6 +8,7 @@ import (
 	"ccs.quizportal/db"
 	"github.com/gin-gonic/gin"
 	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
 func GetRegQuestions() ([]models.Questions, error) {
@@ -67,7 +68,15 @@ func StoreRegResponse(c *gin.Context) {
 		Responses: resp,
 	}
 
-	_, err = db.Registeration_Responses.Coll.InsertOne(db.Registeration_Responses.Context, dbEntry)
+	// One registration per account: a resubmit (double click, edit) replaces
+	// the earlier answers instead of adding another row, which used to feed
+	// duplicates into shift assignment.
+	_, err = db.Registeration_Responses.Coll.ReplaceOne(
+		db.Registeration_Responses.Context,
+		bson.M{"userID": uid},
+		dbEntry,
+		options.Replace().SetUpsert(true),
+	)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to store response"})
 		return

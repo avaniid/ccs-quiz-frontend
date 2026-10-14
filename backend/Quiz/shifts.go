@@ -4,11 +4,15 @@ import (
 	models "ccs.quizportal/Models"
 	"ccs.quizportal/db"
 	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
 func LoadAllShifts() (map[int]models.Shift, error) {
 	shiftsMap := make(map[int]models.Shift)
-	cursor, err := db.Shifts.Coll.Find(db.Shifts.Context, bson.M{})
+	// Oldest first, so if duplicate rows for a shift exist (older builds
+	// inserted a new row on every edit) the most recent one wins.
+	cursor, err := db.Shifts.Coll.Find(db.Shifts.Context, bson.M{},
+		options.Find().SetSort(bson.D{{Key: "_id", Value: 1}}))
 	if err != nil {
 		return nil, err
 	}

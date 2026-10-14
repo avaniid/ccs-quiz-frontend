@@ -49,9 +49,16 @@ func CalcScore() error {
 		}
 
 		score := 0
-
+		// Only the first answer per question counts, and malformed entries are
+		// skipped instead of dereferenced (a nil id used to panic the handler
+		// halfway through, leaving some candidates scored and others not).
+		counted := make(map[[7]byte]bool)
 		for _, resp := range response.Responses {
-			if answerMap[*resp.QuestionID] == *resp.Answer {
+			if resp.QuestionID == nil || resp.Answer == nil || counted[*resp.QuestionID] {
+				continue
+			}
+			counted[*resp.QuestionID] = true
+			if correct, ok := answerMap[*resp.QuestionID]; ok && correct == *resp.Answer {
 				score = score + 4
 			} else {
 				score = score - 1
@@ -69,10 +76,6 @@ func CalcScore() error {
 			log.Printf("failed to update marks for user %v: %v\n", *response.UserID, err)
 			continue
 		}
-		
-		if err := respCursor.Err(); err != nil {
-		return err
-		}
 	}
-	return nil
+	return respCursor.Err()
 }

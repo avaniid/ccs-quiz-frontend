@@ -1,11 +1,15 @@
 import { useEffect, useRef } from "react";
 
-export default function useTabSwitchGuard(onViolation) {
+export default function useTabSwitchGuard(onViolation, enabled = true) {
   const onViolationRef = useRef(onViolation);
   onViolationRef.current = onViolation;
   const lastViolationTimeRef = useRef(0);
 
   useEffect(() => {
+    // Off until the paper is on screen: a "quiz not started" page must not
+    // collect warnings (and with them, an auto-submit of an empty attempt).
+    if (!enabled) return;
+
     const triggerViolation = (type) => {
       const now = Date.now();
       if (now - lastViolationTimeRef.current < 500) {
@@ -32,6 +36,6 @@ export default function useTabSwitchGuard(onViolation) {
       document.removeEventListener("visibilitychange", handleVisibilityChange);
       window.removeEventListener("blur", handleBlur);
     };
-  }, []);
+  }, [enabled]);
 }
 

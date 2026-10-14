@@ -64,48 +64,32 @@ func SessionToken(c *gin.Context) (string, error) {
 	return token, nil
 }
 
-func GetUIDFromSession(c *gin.Context) (models.UID, error) {
-	tokenStr, err := SessionToken(c)
-	if err != nil {
-		return nil, errors.New("session_token missing")
-	}
-
-	claims := jwt.MapClaims{}
-	_, err = jwt.ParseWithClaims(tokenStr, claims, func(token *jwt.Token) (interface{}, error) {
-		return []byte(os.Getenv("JWT_SECRET")), nil
-	})
-	if err != nil {
-		return nil, errors.New("invalid session_token")
-	}
-
-	email, ok := claims["email"].(string)
-	if !ok {
-		return nil, errors.New("email not found in token")
-	}
-
-	var user models.AuthUser
-	found, err := db.AUTH.GetExists(map[string]interface{}{"userEmail": email}, &user)
-	if err != nil || !found {
-		return nil, errors.New("user not found")
-	}
-
-	return user.UserId, nil
+// session is a request's verified identity, cached on the gin context so the
+// middleware and the handler behind it share one JWT parse and one DB lookup.
+type session struct {
+	Email string
+	Name  string
+	User  models.AuthUser
 }
 
-// Verify_token is a standalone endpoint (not middleware): the frontend calls it
-// after the OAuth redirect to find out whether the session cookie it just got is
-// usable, so it answers with JSON instead of redirecting a browser around.
-func Verify_token(c *gin.Context) {
+const sessionKey = "ccs_session"
+
+// loadSession validates the JWT and checks it is still the account's current
+// token. Logging out (or signing in again elsewhere) replaces the stored token,
+// so an old copy stops working instead of staying valid for its full 12 hours.
+func loadSession(c *gin.Context) (*session, int, error) {
+	if v, ok := c.Get(sessionKey); ok {
+		return v.(*session), 0, nil
+	}
+
 	tokenStr, err := SessionToken(c)
 	if err != nil {
-		c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "Missing session token"})
-		return
+		return nil, http.StatusUnauthorized, errors.New("Missing session token")
 	}
 
 	jwtSecret := os.Getenv("JWT_SECRET")
 	if jwtSecret == "" {
-		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": "JWT secret not set"})
-		return
+		return nil, http.StatusInternalServerError, errors.New("JWT secret not set")
 	}
 
 	claims := jwt.MapClaims{}
@@ -115,13 +99,49 @@ func Verify_token(c *gin.Context) {
 		}
 		return []byte(jwtSecret), nil
 	})
-
 	if err != nil || !token.Valid {
-		c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "Invalid or expired session token"})
-		return
+		return nil, http.StatusUnauthorized, errors.New("Invalid or expired session token")
 	}
 
-	email, _ := claims["email"].(string)
+	email, ok := claims["email"].(string)
+	if !ok || email == "" {
+		return nil, http.StatusUnauthorized, errors.New("email not found in token")
+	}
 	name, _ := claims["name"].(string)
-	c.JSON(http.StatusOK, gin.H{"authenticated": true, "email": email, "name": name})
+
+	var user models.AuthUser
+	found, err := db.AUTH.GetExists(map[string]interface{}{"userEmail": email}, &user)
+	if err != nil {
+		return nil, http.StatusInternalServerError, errors.New("could not load your account")
+	}
+	if !found || user.UserId == nil {
+		return nil, http.StatusUnauthorized, errors.New("user not found")
+	}
+	if user.SessionToken != tokenStr {
+		return nil, http.StatusUnauthorized, errors.New("This session has ended (you logged out or signed in again elsewhere). Please sign in again.")
+	}
+
+	s := &session{Email: email, Name: name, User: user}
+	c.Set(sessionKey, s)
+	return s, 0, nil
+}
+
+func GetUIDFromSession(c *gin.Context) (models.UID, error) {
+	s, _, err := loadSession(c)
+	if err != nil {
+		return nil, err
+	}
+	return s.User.UserId, nil
+}
+
+// Verify_token is a standalone endpoint (not middleware): the frontend calls it
+// after the OAuth redirect to find out whether the session it just got is
+// usable, so it answers with JSON instead of redirecting a browser around.
+func Verify_token(c *gin.Context) {
+	s, status, err := loadSession(c)
+	if err != nil {
+		c.AbortWithStatusJSON(status, gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"authenticated": true, "email": s.Email, "name": s.Name})
 }

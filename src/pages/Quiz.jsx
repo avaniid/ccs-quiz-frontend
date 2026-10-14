@@ -1,11 +1,15 @@
 import { useState, useCallback, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { useQuiz } from "../context/QuizContext";
+import { clearQuizProgress } from "../services/quizProgress";
 import {
   submitQuiz as apiSubmitQuiz,
   getGoogleLoginUrl,
   requestSlot,
   fetchSlotStatus,
+  reportViolation,
+  isAlreadySubmittedError,
+  readApiError,
 } from "../services/api";
 import useTimer from "../hooks/useTimer";
 import useTabSwitchGuard from "../hooks/useTabSwitchGuard";
@@ -20,6 +24,15 @@ import VoiceEnrollmentOverlay from "../components/VoiceEnrollmentOverlay";
 
 const MAX_WARNINGS = 15;
 
+// Voice matching is the least reliable guard (a fan, a cough or the
+// candidate's own changing tone can trip it), so it still warns and is
+// reported, but does not count toward the auto-submit limit.
+const NON_STRIKE_VIOLATIONS = new Set(["voice-mismatch"]);
+
+// Backoff between submit attempts. Covers a cold-starting backend (Render's
+// free tier takes up to a minute to wake) and short network drops.
+const SUBMIT_RETRY_DELAYS_MS = [0, 1500, 3000, 6000, 12000, 20000];
+
 export default function Quiz() {
   const navigate = useNavigate();
   const {
@@ -31,10 +44,9 @@ export default function Quiz() {
     loadError,
     unauthorized,
     warningCount,
-    timeRemaining,
-    setTimeRemaining,
+    strikeCount,
+    deadlineMs,
     submitted,
-    markSubmitted,
     answerQuestion,
     clearResponse,
     toggleMarkForReview,
@@ -51,6 +63,21 @@ export default function Quiz() {
   const [slotBusy, setSlotBusy] = useState(false);
   const isSubmittingRef = useRef(false);
   const snapshotCanvasRef = useRef(null);
+  // idle | submitting | failed
+  const [submitPhase, setSubmitPhase] = useState("idle");
+  const [submitError, setSubmitError] = useState("");
+  const [submitUnauthorized, setSubmitUnauthorized] = useState(false);
+  const submitReasonRef = useRef("manual");
+  const snapshotRef = useRef(null);
+
+  // The paper is on screen. Everything that can end the attempt (timer,
+  // warnings, fullscreen enforcement) waits for this, so a "quiz not started"
+  // or "no paper" screen can never auto-submit an empty attempt.
+  const active = !loading && !loadError && questions.length > 0 && !submitted;
+  const activeRef = useRef(active);
+  useEffect(() => {
+    activeRef.current = active;
+  }, [active]);
   // Holds the latest submitQuiz so handleViolation (created before submitQuiz,
   // since the camera/voice hooks need handleViolation up front) never calls a
   // stale closure.
@@ -91,17 +118,19 @@ export default function Quiz() {
   // Anti-cheat violation handler (shared by every guard: tab/fullscreen/camera-based)
   const handleViolation = useCallback(
     (type) => {
-      if (submitted || isSubmittingRef.current) return;
+      if (!activeRef.current || isSubmittingRef.current) return;
 
-      const newCount = incrementWarning();
+      const isStrike = !NON_STRIKE_VIOLATIONS.has(type);
+      reportViolation(type, isStrike);
+      const strikes = incrementWarning(isStrike);
       setViolationType(type);
       setModalVisible(true);
 
-      if (newCount >= MAX_WARNINGS) {
+      if (strikes >= MAX_WARNINGS) {
         submitQuizRef.current("warnings");
       }
     },
-    [submitted, incrementWarning]
+    [incrementWarning]
   );
 
   // Camera + mic stream, shared across all camera/voice proctoring hooks
@@ -132,44 +161,117 @@ export default function Quiz() {
     }
   }, [videoRef]);
 
-  // Submit action handling reason, api call, and navigation
+  // Submit with retries. The attempt only counts as over once the server has
+  // it: this used to flag the attempt submitted first and move on even when
+  // the request failed, so a sleeping backend or a network blip silently threw
+  // the answers away while the candidate was shown "submitted".
   const submitQuiz = useCallback(
     async (reason = "manual") => {
       if (isSubmittingRef.current || submitted) return;
       isSubmittingRef.current = true;
+      submitReasonRef.current = reason;
 
-      // Grab the frame BEFORE flagging the attempt as submitted: markSubmitted
-      // flips `submitted`, whose effect navigates away and unmounts the <video>
-      // this reads from.
-      const snapshot = captureSnapshot();
+      // Grab the frame while the <video> is still mounted; the submitting
+      // screen below replaces it. Kept for retries.
+      if (snapshotRef.current === null) snapshotRef.current = captureSnapshot() || "";
 
-      markSubmitted();
-      try {
-        await apiSubmitQuiz(questions, answers, warningCount, snapshot);
-      } catch (err) {
-        // The attempt is over either way — the backend also rejects a second
-        // submission — so surface the failure in the logs and still move on.
-        console.error("Failed to submit quiz:", err);
+      setSubmitPhase("submitting");
+      setSubmitError("");
+      setSubmitUnauthorized(false);
+
+      let lastError = null;
+      for (const delay of SUBMIT_RETRY_DELAYS_MS) {
+        if (delay) await new Promise((resolve) => setTimeout(resolve, delay));
+        try {
+          await apiSubmitQuiz(questions, answers, warningCount, snapshotRef.current);
+          lastError = null;
+          break;
+        } catch (err) {
+          // An earlier try that timed out on our side may have landed.
+          if (isAlreadySubmittedError(err)) {
+            lastError = null;
+            break;
+          }
+          lastError = err;
+          const status = err?.response?.status;
+          // A 4xx (time over, bad session) will not fix itself by retrying.
+          if (status >= 400 && status < 500 && status !== 408 && status !== 429) break;
+        }
       }
+
+      if (lastError) {
+        console.error("Failed to submit quiz:", lastError);
+        setSubmitUnauthorized(lastError?.response?.status === 401);
+        setSubmitError(readApiError(lastError, "Your answers could not be submitted."));
+        setSubmitPhase("failed");
+        // isSubmittingRef stays set: no more warnings or auto-submits while
+        // the failure screen is up. Retry resets it.
+        return;
+      }
+
+      clearQuizProgress();
       // Attempt is over: turn the camera and mic off so the indicator light
       // does not stay on after the candidate leaves the quiz.
       releaseCameraStream();
-      navigate("/submitted", { state: { reason } });
+      navigate("/submitted", { replace: true, state: { reason } });
     },
-    [questions, answers, warningCount, submitted, markSubmitted, navigate, captureSnapshot]
+    [questions, answers, warningCount, submitted, navigate, captureSnapshot]
   );
+
+  const retrySubmit = useCallback(() => {
+    isSubmittingRef.current = false;
+    submitQuiz(submitReasonRef.current);
+  }, [submitQuiz]);
 
   useEffect(() => {
     submitQuizRef.current = submitQuiz;
   }, [submitQuiz]);
 
-  // Setup timer
-  useTimer(timeRemaining, setTimeRemaining, () => {
-    submitQuiz("timeout");
+  // Counts down to the server's deadline, so a reload does not reset it.
+  const timeRemaining = useTimer(deadlineMs, active, () => {
+    submitQuizRef.current("timeout");
   });
 
-  useTabSwitchGuard(handleViolation);
-  useFullscreenGuard(handleViolation);
+  useTabSwitchGuard(handleViolation, active);
+  useFullscreenGuard(handleViolation, active);
+
+  if (submitPhase !== "idle") {
+    const failed = submitPhase === "failed";
+    return (
+      <div className="min-h-screen flex items-center justify-center p-6">
+        <div className="card max-w-md w-full p-8 text-center shadow-xs">
+          <h2
+            className={`font-display text-xl font-bold mb-2 ${
+              failed ? "text-red-600" : "text-[var(--ink)]"
+            }`}
+          >
+            {failed ? "Submission failed" : "Submitting your answers..."}
+          </h2>
+          <p className="text-gray-500 text-sm mb-6">
+            {failed
+              ? `${submitError} Your answers are saved on this device - do not close this tab.`
+              : "Please keep this tab open. This can take up to a minute."}
+          </p>
+          {failed &&
+            (submitUnauthorized ? (
+              <button
+                onClick={() => {
+                  // Answers and the deadline survive the sign-in round trip.
+                  window.location.href = getGoogleLoginUrl();
+                }}
+                className="btn-primary cursor-pointer"
+              >
+                Sign in again
+              </button>
+            ) : (
+              <button onClick={retrySubmit} className="btn-primary cursor-pointer">
+                Retry submit
+              </button>
+            ))}
+        </div>
+      </div>
+    );
+  }
 
   if (loading) {
     return (
@@ -546,7 +648,7 @@ export default function Quiz() {
       {/* Warning Modal */}
       <WarningModal
         visible={modalVisible}
-        warningCount={warningCount}
+        warningCount={strikeCount}
         maxWarnings={MAX_WARNINGS}
         violationType={violationType}
         onDismiss={() => {

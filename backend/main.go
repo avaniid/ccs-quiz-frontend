@@ -24,6 +24,18 @@ func main() {
 	if err := godotenv.Load(); err != nil {
 		log.Println("No .env file found, using system ENV")
 	}
+	// Fail at boot, with the variable's name, instead of deploying "fine" and
+	// then breaking on the first login with an opaque 500.
+	var missing []string
+	for _, name := range []string{"SESSION_SECRET", "JWT_SECRET", "FRONTEND_REDIRECT_URL"} {
+		if os.Getenv(name) == "" {
+			missing = append(missing, name)
+		}
+	}
+	if len(missing) > 0 {
+		log.Fatalf("required env variables missing: %s", strings.Join(missing, ", "))
+	}
+
 	gothic.Store = sessions.NewCookieStore([]byte(os.Getenv("SESSION_SECRET")))
 
 	if err := db.Init(); err != nil {
@@ -73,23 +85,18 @@ func main() {
 
 	router.GET("/logout", login.Logout)
 	router.GET("/admin", func(c *gin.Context) {
-		auth, err := c.Cookie("admin_auth")
-		if err != nil || auth != "main" && auth != "view" {
-			c.Redirect(http.StatusFound, "/admin/login")
-			return
-		}
-		if auth == "main" {
+		switch admin.Role(c) {
+		case admin.RoleMain:
 			c.Redirect(http.StatusFound, "/admin/home")
-			return
-		}
-		if auth == "view" {
+		case admin.RoleView:
 			c.Redirect(http.StatusFound, "/admin/view")
-			return
+		default:
+			c.Redirect(http.StatusFound, "/admin/login")
 		}
-
 	})
 	router.GET("/admin/login", admin.ShowLogin)
 	router.POST("/admin/login", admin.HandleLogin)
+	router.GET("/admin/logout", admin.HandleLogout)
 	router.Static("/static", "./admin_portal/static")
 	router.GET("/quiz/shifts", quiz.GetAppConfig)
 
@@ -112,7 +119,7 @@ func main() {
 			c.HTML(200, "set_shift_timing.html", nil)
 		})
 		authorized_admin.POST("/set-shift-timing", admin.SetShiftTiming)
-		authorized_admin.GET("/calcScore",quiz.GetScores)
+		authorized_admin.POST("/calcScore", quiz.GetScores)
 	}
 
 	view_admin := router.Group("/admin", admin.ViewAdminMiddleware)
@@ -126,7 +133,10 @@ func main() {
 		authorized_user.GET("/regQuestions", registerationform.GetAllQues)
 		authorized_user.POST("/register", registerationform.SubmitForm)
 		authorized_user.GET("/quiz/get", quiz.GetQuizQues)
-		authorized_user.POST("/quiz/submit", quiz.SubmitQuiz)
+		// The snapshot is a base64 JPEG (~100KB); cap the body so nobody can push
+		// a document toward Mongo's 16MB limit.
+		authorized_user.POST("/quiz/submit", limitBody(3<<20), quiz.SubmitQuiz)
+		authorized_user.POST("/quiz/flag", limitBody(4<<10), quiz.FlagViolation)
 		// authorized_user.GET("/quiz/shifts", quiz.GetAppConfig)
 		authorized_user.POST("/quiz/submitted", quiz.IsSubmitted)
 		authorized_user.POST("/quiz/request-slot", quiz.RequestSlot)
@@ -134,10 +144,20 @@ func main() {
 	}
 
 
-	// run on localhost:8080
-	// router.Run(":8080")
+	// Render (and most PaaS hosts) tell the app which port to bind through
+	// PORT; 2117 stays the local default.
+	port := os.Getenv("PORT")
+	if port == "" {
+		port = "2117"
+	}
+	router.Run("0.0.0.0:" + port)
+}
 
-	router.Run("0.0.0.0:2117")
+func limitBody(n int64) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		c.Request.Body = http.MaxBytesReader(c.Writer, c.Request.Body, n)
+		c.Next()
+	}
 }
 
 func checkHealth(c *gin.Context) {

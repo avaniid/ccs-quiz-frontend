@@ -1,11 +1,13 @@
 import { useEffect, useRef } from "react";
 
-export default function useFullscreenGuard(onViolation) {
+export default function useFullscreenGuard(onViolation, enabled = true) {
   const onViolationRef = useRef(onViolation);
   onViolationRef.current = onViolation;
   const isUnmountingRef = useRef(false);
 
   useEffect(() => {
+    // Only enforce fullscreen while the paper is actually on screen.
+    if (!enabled) return;
     isUnmountingRef.current = false;
 
     const requestFullscreen = () => {
@@ -38,6 +40,6 @@ export default function useFullscreenGuard(onViolation) {
         });
       }
     };
-  }, []);
+  }, [enabled]);
 }
 

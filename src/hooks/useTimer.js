@@ -1,31 +1,40 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 
-export default function useTimer(timeRemaining, setTimeRemaining, onExpire) {
+function secondsUntil(deadlineMs) {
+  return Math.max(0, Math.ceil((deadlineMs - Date.now()) / 1000));
+}
+
+/**
+ * Counts down to a fixed deadline and calls onExpire once when it is reached.
+ *
+ * It is derived from the deadline every tick rather than decremented, so a
+ * reload cannot restart it and a throttled background tab cannot slow it down.
+ * Nothing runs (and nothing expires) until `enabled` is true, so the timer
+ * cannot fire on a screen that never showed the paper.
+ */
+export default function useTimer(deadlineMs, enabled, onExpire) {
   const onExpireRef = useRef(onExpire);
   onExpireRef.current = onExpire;
   const expiredRef = useRef(false);
+  const [remaining, setRemaining] = useState(() =>
+    deadlineMs == null ? 0 : secondsUntil(deadlineMs)
+  );
 
   useEffect(() => {
-    if (timeRemaining <= 0) {
-      if (!expiredRef.current) {
+    if (!enabled || deadlineMs == null) return;
+
+    const tick = () => {
+      const left = secondsUntil(deadlineMs);
+      setRemaining(left);
+      if (left <= 0 && !expiredRef.current) {
         expiredRef.current = true;
         onExpireRef.current?.();
       }
-      return;
-    }
-
-    const intervalId = setInterval(() => {
-      setTimeRemaining((prev) => Math.max(0, prev - 1));
-    }, 1000);
-
+    };
+    tick();
+    const intervalId = setInterval(tick, 1000);
     return () => clearInterval(intervalId);
-  }, [setTimeRemaining, timeRemaining <= 0]);
+  }, [deadlineMs, enabled]);
 
-  useEffect(() => {
-    if (timeRemaining <= 0 && !expiredRef.current) {
-      expiredRef.current = true;
-      onExpireRef.current?.();
-    }
-  }, [timeRemaining]);
+  return remaining;
 }
-

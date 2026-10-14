@@ -150,32 +150,21 @@ func AssignSlotToUser(c *gin.Context) {
 		return
 	}
 
-	var questions []models.Quiz_Questions
-	qCur, err := db.Quiz_Questions.Coll.Find(db.Quiz_Questions.Context, bson.M{})
+	bank, err := loadQuestionBank()
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to load quiz questions"})
 		return
 	}
-	defer qCur.Close(db.Quiz_Questions.Context)
-	for qCur.Next(db.Quiz_Questions.Context) {
-		var q models.Quiz_Questions
-		if qCur.Decode(&q) == nil {
-			questions = append(questions, q)
-		}
-	}
-	if len(questions) == 0 {
+	if len(bank) == 0 {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "no quiz questions in the bank yet"})
 		return
 	}
-	if req.QuestionsPerSet > len(questions) {
-		req.QuestionsPerSet = len(questions)
-	}
-	shuffleQuestions(questions)
+	set, _ := pickSet(bank, req.Shift, req.QuestionsPerSet)
 
 	entry := models.UserQuestions{
 		UserID:    user.UserId,
 		Shift:     req.Shift,
-		Questions: questions[:req.QuestionsPerSet],
+		Questions: personalize(set),
 	}
 	// Replace rather than insert, so re-assigning a slot during testing does not
 	// leave the account holding two papers.

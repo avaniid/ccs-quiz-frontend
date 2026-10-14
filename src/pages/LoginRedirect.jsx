@@ -10,7 +10,14 @@ import { storeSessionToken } from "../api/client";
  */
 function LoginRedirect() {
   const navigate = useNavigate();
-  const [message, setMessage] = useState("Verifying your login...");
+  // The backend refused the account (e.g. not a college email) and said why
+  // in the fragment instead of handing over a token.
+  const [rejection] = useState(() => {
+    const hash = window.location.hash;
+    return hash.startsWith("#error=") ? decodeURIComponent(hash.slice("#error=".length)) : "";
+  });
+  const rejected = rejection !== "";
+  const [message, setMessage] = useState(rejection || "Verifying your login...");
 
   useEffect(() => {
     let isMounted = true;
@@ -19,6 +26,10 @@ function LoginRedirect() {
     // third-party cookie here and many browsers drop it. Keep the token, then
     // strip it from the address bar so it is not left in history or shared.
     const hash = window.location.hash;
+    if (rejected) {
+      window.history.replaceState(null, "", window.location.pathname);
+      return;
+    }
     if (hash.startsWith("#token=")) {
       storeSessionToken(decodeURIComponent(hash.slice("#token=".length)));
       window.history.replaceState(null, "", window.location.pathname);
@@ -55,13 +66,23 @@ function LoginRedirect() {
       isMounted = false;
       clearTimeout(slowTimer);
     };
-  }, [navigate]);
+  }, [navigate, rejected]);
 
   return (
     <div className="min-h-screen flex items-center justify-center p-6">
       <div className="card max-w-md w-full p-8 text-center shadow-xs">
-        <h2 className="font-display text-xl font-bold mb-2 text-[var(--ink)]">Please wait</h2>
+        <h2 className="font-display text-xl font-bold mb-2 text-[var(--ink)]">
+          {rejected ? "Sign-in not allowed" : "Please wait"}
+        </h2>
         <p className="text-gray-500 text-sm">{message}</p>
+        {rejected && (
+          <button
+            onClick={() => navigate("/", { replace: true })}
+            className="btn-primary cursor-pointer mt-6"
+          >
+            Back
+          </button>
+        )}
       </div>
     </div>
   );
