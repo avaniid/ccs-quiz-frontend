@@ -139,36 +139,58 @@ func GetQuizQuestions(c *gin.Context) (*QuizPaper, error) {
 		log.Printf("failed to load attempt for user %v: %v", userID, err)
 		return nil, errors.New("could not load your quiz, please try again")
 	}
-	// Refuse to hand the paper back out once the attempt is over.
+	testMode := TestMode()
+	// Refuse to hand the paper back out once the attempt is over. In test mode
+	// the finished attempt is cleared instead, so the same login can retake it.
 	if prev.Submitted {
-		return nil, ErrAlreadySubmitted
+		if !testMode {
+			return nil, ErrAlreadySubmitted
+		}
+		if err := resetTestAttempt(userID); err != nil {
+			log.Printf("test mode: reset failed for user %v: %v", userID, err)
+			return nil, errors.New("could not start a new attempt, please try again")
+		}
+		prev, started = attempt{}, false
 	}
 
 	var uq models.UserQuestions
-	err = db.User_Questions.Coll.FindOne(db.User_Questions.Context, bson.M{"userID": userID}).Decode(&uq)
-	if err == mongo.ErrNoDocuments {
-		// Authenticated, but the admin has not given this account a paper yet.
-		return nil, ErrNoPaperAssigned
+	if testMode {
+		// No slot request or admin assignment while testing: a paper is drawn
+		// on the spot from the whole bank.
+		uq, err = ensureTestPaper(userID)
+		if errors.Is(err, ErrNoQuestionsInBank) {
+			return nil, err
+		}
+	} else {
+		err = db.User_Questions.Coll.FindOne(db.User_Questions.Context, bson.M{"userID": userID}).Decode(&uq)
+		if err == mongo.ErrNoDocuments {
+			// Authenticated, but the admin has not given this account a paper yet.
+			return nil, ErrNoPaperAssigned
+		}
 	}
 	if err != nil {
 		log.Printf("failed to load questions for user %v: %v", userID, err)
 		return nil, errors.New("could not load your quiz, please try again")
 	}
 
-	shiftInfo, err := getShift(uq.Shift)
-	if err != nil {
-		return nil, err
-	}
 	now := time.Now()
-	if now.Before(shiftInfo.Start) {
-		return nil, ErrQuizNotStarted
-	}
 	duration := TestDuration()
-	// Entry closes once the shift's own window is over; someone from shift 1
-	// must not be able to open the paper during shift 3. A candidate who had
-	// already started is handled by their personal deadline below.
-	if !started && now.After(shiftInfo.Start.Add(duration)) {
-		return nil, ErrShiftOver
+	// Shift timings are not used in test mode: the paper opens whenever the
+	// tester signs in, and only their personal deadline applies.
+	if !testMode {
+		shiftInfo, err := getShift(uq.Shift)
+		if err != nil {
+			return nil, err
+		}
+		if now.Before(shiftInfo.Start) {
+			return nil, ErrQuizNotStarted
+		}
+		// Entry closes once the shift's own window is over; someone from shift 1
+		// must not be able to open the paper during shift 3. A candidate who had
+		// already started is handled by their personal deadline below.
+		if !started && now.After(shiftInfo.Start.Add(duration)) {
+			return nil, ErrShiftOver
+		}
 	}
 
 	// First open stamps started_at; later opens (a refresh, a crash) keep it,
@@ -425,7 +447,9 @@ func IsSubmitted(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to read submission status"})
 		return
 	}
-	if result.Submitted {
+	// In test mode a finished attempt is cleared when the paper is opened
+	// again, so do not send the tester to the "submitted" page on sign-in.
+	if result.Submitted && !TestMode() {
 		c.JSON(http.StatusOK, gin.H{"submitted": true})
 	} else {
 		c.JSON(http.StatusNotFound, gin.H{"submitted": false})

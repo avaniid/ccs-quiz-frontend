@@ -5,8 +5,6 @@ import { clearQuizProgress } from "../services/quizProgress";
 import {
   submitQuiz as apiSubmitQuiz,
   getGoogleLoginUrl,
-  requestSlot,
-  fetchSlotStatus,
   reportViolation,
   isAlreadySubmittedError,
   readApiError,
@@ -58,9 +56,6 @@ export default function Quiz() {
 
   const [modalVisible, setModalVisible] = useState(false);
   const [violationType, setViolationType] = useState("");
-  // Slot request state, used only by the "no paper yet" screen below.
-  const [slotStatus, setSlotStatus] = useState(null); // null | none | pending | assigned
-  const [slotBusy, setSlotBusy] = useState(false);
   const isSubmittingRef = useRef(false);
   const snapshotCanvasRef = useRef(null);
   // idle | submitting | failed
@@ -90,30 +85,6 @@ export default function Quiz() {
     }
   }, [submitted, navigate]);
 
-  // Only relevant when no paper was returned: find out whether a slot request is
-  // already pending, so the button below shows the right thing.
-  const noPaper = !loading && (loadError || questions.length === 0) && !unauthorized;
-  useEffect(() => {
-    if (!noPaper) return;
-    let alive = true;
-    fetchSlotStatus()
-      .then((s) => alive && setSlotStatus(s))
-      .catch(() => alive && setSlotStatus("none"));
-    return () => {
-      alive = false;
-    };
-  }, [noPaper]);
-
-  const handleRequestSlot = useCallback(async () => {
-    setSlotBusy(true);
-    try {
-      setSlotStatus(await requestSlot());
-    } catch {
-      setSlotStatus("none");
-    } finally {
-      setSlotBusy(false);
-    }
-  }, []);
 
   // Anti-cheat violation handler (shared by every guard: tab/fullscreen/camera-based)
   const handleViolation = useCallback(
@@ -309,42 +280,13 @@ export default function Quiz() {
             >
               Sign in again
             </button>
-          ) : slotStatus === "pending" ? (
-            <div className="space-y-4">
-              <div className="rounded-lg border border-[var(--border)] bg-[var(--bg)] p-4">
-                <p className="font-semibold text-sm text-[var(--ink)] mb-1">
-                  Time slot requested
-                </p>
-                <p className="text-sm text-gray-600">
-                  Your request has reached the admin. Once they allot your slot,
-                  reload this page to begin.
-                </p>
-              </div>
-              <button
-                onClick={() => window.location.reload()}
-                className="btn-primary cursor-pointer"
-              >
-                I have been allotted a slot — reload
-              </button>
-            </div>
           ) : (
-            <div className="space-y-3">
-              <button
-                onClick={handleRequestSlot}
-                disabled={slotBusy || slotStatus === null}
-                className="btn-primary cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
-              >
-                {slotBusy ? "Sending request..." : "Request a time slot"}
-              </button>
-              <div>
-                <button
-                  onClick={() => window.location.reload()}
-                  className="text-sm text-gray-500 underline cursor-pointer"
-                >
-                  Retry
-                </button>
-              </div>
-            </div>
+            <button
+              onClick={() => window.location.reload()}
+              className="btn-primary cursor-pointer"
+            >
+              Retry
+            </button>
           )}
         </div>
       </div>

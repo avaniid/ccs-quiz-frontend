@@ -52,7 +52,8 @@ func GetQuizQues(c *gin.Context) {
 			errors.Is(err, ErrNoPaperAssigned),
 			errors.Is(err, ErrQuizNotStarted),
 			errors.Is(err, ErrShiftOver),
-			errors.Is(err, ErrTimeUp):
+			errors.Is(err, ErrTimeUp),
+			errors.Is(err, ErrNoQuestionsInBank):
 			c.JSON(http.StatusForbidden, gin.H{"message": err.Error()})
 		default:
 			c.JSON(http.StatusInternalServerError, gin.H{"message": err.Error()})

@@ -171,7 +171,8 @@ func checkHealth(c *gin.Context) {
 		commit = commit[:7]
 	}
 	c.JSON(http.StatusOK, gin.H{
-		"message": "Backend is up and running",
-		"commit":  commit,
+		"message":   "Backend is up and running",
+		"commit":    commit,
+		"test_mode": quiz.TestMode(),
 	})
 }
