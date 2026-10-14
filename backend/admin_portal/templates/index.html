@@ -158,8 +158,12 @@ document.getElementById('assignShiftsBtn').onclick = async function() {
 </div>
 <script>
 let usersLoading = false;
+let reloadQueued = false;
 async function loadSignedInUsers(quiet) {
-  if (usersLoading) return;
+  // A reload asked for while one is running (e.g. right after Reset/Assign,
+  // during an auto-refresh) runs as soon as that one finishes instead of
+  // being dropped.
+  if (usersLoading) { reloadQueued = true; return; }
   usersLoading = true;
   const box = document.getElementById('usersTable');
   if (!quiet) box.textContent = 'Loading...';
@@ -254,11 +258,16 @@ async function loadSignedInUsers(quiet) {
     box.textContent = 'Failed to load users: ' + err;
   } finally {
     usersLoading = false;
+    if (reloadQueued) { reloadQueued = false; loadSignedInUsers(true); }
   }
 }
 document.getElementById('loadUsersBtn').onclick = () => loadSignedInUsers();
 // Keep the table live while testing; skip while the tab is hidden.
-setInterval(() => { if (!document.hidden) loadSignedInUsers(true); }, 20000);
+// Also skip while the admin is typing a shift/count, or the rebuild would wipe it.
+setInterval(() => {
+  const typing = document.activeElement && document.getElementById('usersTable').contains(document.activeElement);
+  if (!document.hidden && !typing) loadSignedInUsers(true);
+}, 20000);
 // Load on open: an admin looking for "who is waiting for a slot" should see the
 // list without having to press anything first.
 loadSignedInUsers();

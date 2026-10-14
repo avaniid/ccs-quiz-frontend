@@ -79,3 +79,47 @@ func CalcScore() error {
 	}
 	return respCursor.Err()
 }
+
+// scoreResponses marks one attempt against the answer key: +4 correct, -1
+// wrong, the same rule as CalcScore. A failed key lookup scores 0 and leaves
+// the real marks to CalcScore rather than failing the submission.
+func scoreResponses(responses []models.Quiz_Answer) int {
+	ids := make([]models.QID, 0, len(responses))
+	for _, r := range responses {
+		if r.QuestionID != nil {
+			ids = append(ids, r.QuestionID)
+		}
+	}
+	if len(ids) == 0 {
+		return 0
+	}
+	ctx := db.Quiz_Answers.Context
+	cur, err := db.Quiz_Answers.Coll.Find(ctx, bson.M{"questionID": bson.M{"$in": ids}})
+	if err != nil {
+		log.Printf("score on submit: answer key lookup failed: %v", err)
+		return 0
+	}
+	defer cur.Close(ctx)
+	key := make(map[[7]byte][7]byte)
+	for cur.Next(ctx) {
+		var a models.Quiz_Answer
+		if cur.Decode(&a) == nil && a.QuestionID != nil && a.Answer != nil {
+			key[*a.QuestionID] = *a.Answer
+		}
+	}
+
+	score := 0
+	counted := make(map[[7]byte]bool)
+	for _, r := range responses {
+		if r.QuestionID == nil || r.Answer == nil || counted[*r.QuestionID] {
+			continue
+		}
+		counted[*r.QuestionID] = true
+		if correct, ok := key[*r.QuestionID]; ok && correct == *r.Answer {
+			score += 4
+		} else {
+			score--
+		}
+	}
+	return score
+}

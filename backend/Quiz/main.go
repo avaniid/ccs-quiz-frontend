@@ -353,7 +353,10 @@ func RecieveResponse(c *gin.Context) {
 		UserID:      userID,
 		SnapShot:    resp.Image,
 		FlagsRaised: flags,
-		Marks:       0,
+		// Scored on the spot so the admin portal shows real marks right away
+		// instead of 0 until someone runs "Calculate Scores" (which still
+		// recomputes everything, e.g. after an answer key is corrected).
+		Marks: scoreResponses(resp.Responses),
 	}
 
 	_, err = db.Quiz_Track.Coll.UpdateOne(
