@@ -140,12 +140,14 @@ export default function Quiz() {
   const { phase: voicePhase, secondsLeft: enrollSecondsLeft, startEnrollment } =
     useVoiceGuard(cameraStream, handleViolation);
 
-  // Kick off voice enrollment as soon as the mic stream is ready
+  // Start voice enrollment once the mic is ready AND the paper is on screen.
+  // Starting on the stream alone ran most of the 10 seconds behind the
+  // loading screen, where the "please speak" overlay is not shown.
   useEffect(() => {
-    if (cameraStream) {
+    if (cameraStream && active) {
       startEnrollment();
     }
-  }, [cameraStream, startEnrollment]);
+  }, [cameraStream, active, startEnrollment]);
 
   const captureSnapshot = useCallback(() => {
     const video = videoRef.current;

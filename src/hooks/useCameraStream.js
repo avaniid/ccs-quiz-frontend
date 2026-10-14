@@ -55,14 +55,17 @@ export default function useCameraStream(onViolation) {
     };
   }, []);
 
-  // The <video> element only mounts once `stream` is set (Quiz.jsx renders it
-  // conditionally), so videoRef.current is still null at the point start()
-  // resolves above. Bind srcObject here instead, once the element exists.
+  // Quiz.jsx mounts the <video> only once the paper has loaded, which is
+  // usually well after the stream resolved. Keying this on [stream] alone ran
+  // it while the element did not exist yet and never again, so the video (and
+  // with it face/object detection and the snapshot) stayed blank. Check on
+  // every render instead; the identity check keeps it a no-op once bound.
   useEffect(() => {
-    if (videoRef.current && stream) {
-      videoRef.current.srcObject = stream;
+    const video = videoRef.current;
+    if (video && stream && video.srcObject !== stream) {
+      video.srcObject = stream;
     }
-  }, [stream]);
+  });
 
   return { stream, videoRef, error };
 }
