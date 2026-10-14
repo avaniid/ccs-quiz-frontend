@@ -1,14 +1,18 @@
 package admin
 
 import (
+	"errors"
 	"net/http"
 	"sort"
 	"time"
 
 	models "ccs.quizportal/Models"
+	quiz "ccs.quizportal/Quiz"
 	"ccs.quizportal/db"
 	"github.com/gin-gonic/gin"
 	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/mongo"
+	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
 // Direct slot assignment, per user, from the admin portal.
@@ -27,6 +31,9 @@ type pendingUser struct {
 	Requested   bool   `json:"requested"`    // raised a slot request and is waiting
 	RequestedAt string `json:"requested_at"` // local time, "" when never requested
 	Submitted   bool   `json:"submitted"`    // finished; needs a reset to retake
+	Started     bool   `json:"started"`      // opened the paper
+	Flags       int    `json:"flags"`        // proctoring warnings recorded so far
+	Marks       *int   `json:"marks"`        // nil until submitted; 0 until scores are calculated
 }
 
 // ResetAttempt clears one account's attempt so the same login can take the quiz
@@ -70,50 +77,127 @@ func ResetAttempt(c *gin.Context) {
 	})
 }
 
-// ListSignedInUsers reports every account that has signed in, and whether it
-// already holds a paper. GET /admin/api/signed-in-users
+// uidKey turns a stored 7-byte user id into a map key.
+func uidKey(id models.UID) string {
+	if id == nil {
+		return ""
+	}
+	return string(id[:])
+}
+
+// loadByUser runs one query over a whole collection and hands each row to fn,
+// so building the list costs a fixed handful of round trips instead of three
+// per account.
+func loadByUser(coll db.Collection, projection bson.M, fn func(cur *mongo.Cursor) error) error {
+	cur, err := coll.Coll.Find(coll.Context, bson.M{}, options.Find().SetProjection(projection))
+	if err != nil {
+		return err
+	}
+	defer cur.Close(coll.Context)
+	for cur.Next(coll.Context) {
+		if err := fn(cur); err != nil {
+			continue // one unreadable row must not hide everyone else
+		}
+	}
+	return cur.Err()
+}
+
+// ListSignedInUsers reports every account that has signed in, with its paper,
+// attempt and score. GET /admin/api/signed-in-users
+//
+// This used to run three queries per account. With the database in another
+// region each round trip is ~0.2 s, so a hundred accounts took over a minute
+// and the admin page looked frozen. It now reads each collection once.
 func ListSignedInUsers(c *gin.Context) {
-	cur, err := db.AUTH.Coll.Find(db.AUTH.Context, bson.M{})
+	rows := map[string]*pendingUser{}
+	var order []string
+
+	err := loadByUser(db.AUTH, bson.M{"userID": 1, "userEmail": 1}, func(cur *mongo.Cursor) error {
+		var u models.AuthUser
+		if err := cur.Decode(&u); err != nil || u.UserId == nil {
+			return errSkip
+		}
+		k := uidKey(u.UserId)
+		if _, seen := rows[k]; !seen {
+			order = append(order, k)
+		}
+		rows[k] = &pendingUser{Email: u.Email}
+		return nil
+	})
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to load accounts"})
 		return
 	}
-	defer cur.Close(db.AUTH.Context)
 
-	users := []pendingUser{}
-	for cur.Next(db.AUTH.Context) {
-		var u models.AuthUser
-		if err := cur.Decode(&u); err != nil || u.UserId == nil {
-			continue
+	// The papers themselves are large; only the owner and shift are needed.
+	loadByUser(db.User_Questions, bson.M{"userID": 1, "shift": 1}, func(cur *mongo.Cursor) error {
+		var d struct {
+			UserID models.UID `bson:"userID"`
+			Shift  int        `bson:"shift"`
 		}
-		row := pendingUser{Email: u.Email}
-		var uq models.UserQuestions
-		if err := db.User_Questions.Coll.FindOne(
-			db.User_Questions.Context, bson.M{"userID": u.UserId},
-		).Decode(&uq); err == nil {
-			row.Assigned = true
-			row.Shift = uq.Shift
+		if err := cur.Decode(&d); err != nil {
+			return err
 		}
+		if r := rows[uidKey(d.UserID)]; r != nil {
+			r.Assigned, r.Shift = true, d.Shift
+		}
+		return nil
+	})
 
-		var done struct {
-			Submitted bool `bson:"quiz_submitted"`
+	loadByUser(db.Updates, bson.M{"userID": 1, "quiz_started": 1, "quiz_submitted": 1, "flags": 1}, func(cur *mongo.Cursor) error {
+		var d struct {
+			UserID    models.UID `bson:"userID"`
+			Started   bool       `bson:"quiz_started"`
+			Submitted bool       `bson:"quiz_submitted"`
+			Flags     int        `bson:"flags"`
 		}
-		if err := db.Updates.Coll.FindOne(
-			db.Updates.Context, bson.M{"userID": u.UserId},
-		).Decode(&done); err == nil {
-			row.Submitted = done.Submitted
+		if err := cur.Decode(&d); err != nil {
+			return err
 		}
+		if r := rows[uidKey(d.UserID)]; r != nil {
+			r.Started, r.Submitted, r.Flags = d.Started, d.Submitted, d.Flags
+		}
+		return nil
+	})
 
-		var reqDoc struct {
-			RequestedAt time.Time `bson:"requested_at"`
+	// The snapshot is excluded: it is the bulk of every track row.
+	loadByUser(db.Quiz_Track, bson.M{"userID": 1, "marks": 1, "flagsraised": 1}, func(cur *mongo.Cursor) error {
+		var d struct {
+			UserID models.UID `bson:"userID"`
+			Marks  int        `bson:"marks"`
+			Flags  int        `bson:"flagsraised"`
 		}
-		if err := db.Slot_Requests.Coll.FindOne(
-			db.Slot_Requests.Context, bson.M{"userID": u.UserId},
-		).Decode(&reqDoc); err == nil {
-			row.Requested = true
-			row.RequestedAt = reqDoc.RequestedAt.Local().Format("02 Jan, 15:04")
+		if err := cur.Decode(&d); err != nil {
+			return err
 		}
-		users = append(users, row)
+		if r := rows[uidKey(d.UserID)]; r != nil {
+			m := d.Marks
+			r.Marks = &m
+			if d.Flags > r.Flags {
+				r.Flags = d.Flags
+			}
+		}
+		return nil
+	})
+
+	loadByUser(db.Slot_Requests, bson.M{"userID": 1, "requested_at": 1}, func(cur *mongo.Cursor) error {
+		var d struct {
+			UserID      models.UID `bson:"userID"`
+			RequestedAt time.Time  `bson:"requested_at"`
+		}
+		if err := cur.Decode(&d); err != nil {
+			return err
+		}
+		if r := rows[uidKey(d.UserID)]; r != nil {
+			r.Requested = true
+			r.RequestedAt = d.RequestedAt.Local().Format("02 Jan, 15:04")
+		}
+		return nil
+	})
+
+	users := make([]pendingUser, 0, len(order))
+	for _, k := range order {
+		users = append(users, *rows[k])
 	}
 
 	// Waiting-and-unassigned first: that is the queue the admin is here to clear.
@@ -126,8 +210,10 @@ func ListSignedInUsers(c *gin.Context) {
 		return users[i].Email < users[j].Email
 	})
 
-	c.JSON(http.StatusOK, gin.H{"users": users})
+	c.JSON(http.StatusOK, gin.H{"users": users, "test_mode": quiz.TestMode()})
 }
+
+var errSkip = errors.New("skip row")
 
 // AssignSlotToUser gives one account a shift and a freshly shuffled question
 // set, replacing any paper it already had. POST /admin/assign-slot
