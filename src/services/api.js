@@ -39,7 +39,7 @@ function normalizeQuestion(raw, index) {
   return {
     id: toKey(rawId, `q${index}`),
     rawId: rawId ?? null,
-    text: pick(raw, "Question", "question", "quizQuestions") ?? "",
+    text: pick(raw, "Question", "question", "quizQuestions", "text") ?? "",
     image: pick(raw, "Image", "image", "image_url") ?? "",
     shift: pick(raw, "Shift", "shift") ?? null,
     options: (pick(raw, "Options", "options") ?? []).map((opt, optionIndex) =>
@@ -60,6 +60,11 @@ export function readApiError(err, fallback = "Something went wrong. Please try a
 /** Full URL of the backend's Google OAuth entry point (a top-level redirect). */
 export function getGoogleLoginUrl() {
   return `${API_BASE_URL}/auth/google`;
+}
+
+export function isThaparEmail(email) {
+  if (!email || typeof email !== "string") return false;
+  return email.trim().toLowerCase().endsWith("@thapar.edu");
 }
 
 /** Resolves with the signed-in user, rejects (401) when the session is invalid. */

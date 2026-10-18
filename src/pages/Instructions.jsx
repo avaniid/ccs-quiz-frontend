@@ -1,11 +1,14 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { verifySession } from "../services/api";
+import {
+  verifySession,
+  isThaparEmail,
+  logout,
+  getGoogleLoginUrl,
+} from "../services/api";
 import { acquireCameraStream } from "../hooks/cameraStore";
+import Navbar from "../components/Navbar";
 
-// Turn a getUserMedia rejection into something a candidate can act on. The
-// generic "access is required" message hid real causes (device in use by another
-// app, no camera attached, blocked at the OS level) during production testing.
 function describeMediaError(err) {
   switch (err?.name) {
     case "NotAllowedError":
@@ -24,37 +27,48 @@ function describeMediaError(err) {
 }
 
 export default function Instructions() {
+  const [user, setUser] = useState(null);
+  const [loadingUser, setLoadingUser] = useState(true);
   const [error, setError] = useState("");
   const navigate = useNavigate();
 
-  // Don't let anyone read the rules into a test they can't start — /quiz/get
-  // needs the session cookie this check validates.
   useEffect(() => {
     let isMounted = true;
-    verifySession().catch(() => {
-      if (isMounted) navigate("/", { replace: true });
-    });
+    verifySession()
+      .then((data) => {
+        if (isMounted) {
+          setUser(data);
+          setLoadingUser(false);
+        }
+      })
+      .catch(() => {
+        if (isMounted) {
+          setUser(null);
+          setLoadingUser(false);
+        }
+      });
+
     return () => {
       isMounted = false;
     };
-  }, [navigate]);
+  }, []);
+
+  const isAuthorized = user && isThaparEmail(user.email);
+
+  const handleSignIn = () => {
+    window.location.href = getGoogleLoginUrl();
+  };
+
+  const handleSignOut = async () => {
+    await logout();
+    setUser(null);
+  };
 
   const handleAccept = async () => {
     setError("");
     try {
-      // Ask for camera and mic BEFORE going fullscreen. Browsers suppress or
-      // hide permission prompts while a page is entering fullscreen, so a
-      // candidate on a first visit never gets to grant access. (This only shows
-      // up on a fresh origin — on localhost the permission is already
-      // remembered, so no prompt is needed and the bug stays hidden.)
-      //
-      // The stream stays open and is handed to the quiz page. Closing it here
-      // and reopening there made Windows fail the second open with
-      // NotReadableError, because the device was still being released.
       await acquireCameraStream();
 
-      // Best effort: the prompt may have used up this click's activation, in
-      // which case the quiz page's guard picks it up on the next interaction.
       if (!document.fullscreenElement) {
         await document.documentElement.requestFullscreen?.().catch(() => {});
       }
@@ -64,77 +78,133 @@ export default function Instructions() {
     }
   };
 
-  const rules = [
-    {
-      title: "Stay alone in frame",
-      detail:
-        "Keep only yourself visible to the camera. If a second face is detected, or your face isn't visible, a warning is raised.",
-    },
-    {
-      title: "No phones, tablets or other devices",
-      detail:
-        "Don't bring a phone, tablet, laptop, book, or other electronic device into the camera's view — it will be detected and flagged.",
-    },
-    {
-      title: "No other voices",
-      detail:
-        "You'll record a short voice sample before the test starts. After that, only your voice should be heard — a different voice nearby will raise a warning.",
-    },
-    {
-      title: "Don't look away from the screen",
-      detail: "Keep your attention on the test window for the full duration.",
-    },
-    {
-      title: "Don't switch tabs or windows",
-      detail: "Switching tabs, minimizing, or clicking outside this window raises a warning.",
-    },
-    {
-      title: "Stay in fullscreen",
-      detail: "Exiting fullscreen mode during the test raises a warning.",
-    },
-    {
-      title: "Keep camera & microphone on",
-      detail: "Losing camera or microphone access during the test raises a warning.",
-    },
-  ];
-
   return (
-    <div className="min-h-screen flex items-center justify-center p-6">
-      <div className="card max-w-3xl w-full p-8 md:p-10 shadow-xs">
-        <h2 className="font-display text-2xl md:text-3xl font-bold mb-2 text-[var(--ink)]">
-          Instructions
-        </h2>
-        <p className="text-sm text-gray-500 mb-6">
-          This test is proctored. Please read the rules below carefully before you begin.
-        </p>
+    <div className="min-h-screen flex flex-col justify-between">
+      {/* Top Navbar */}
+      <Navbar activePage="Instructions" />
 
-        <ul className="space-y-3 mb-6">
-          {rules.map((rule) => (
-            <li
-              key={rule.title}
-              className="flex gap-3 p-3 rounded-lg border border-[var(--border)] bg-[var(--bg)]"
-            >
-              <span className="w-2 h-2 mt-1.5 rounded-full bg-[var(--blue)] shrink-0" />
-              <div>
-                <p className="font-semibold text-sm text-[var(--ink)]">{rule.title}</p>
-                <p className="text-sm text-gray-600">{rule.detail}</p>
+      {/* Main Container */}
+      <main className="flex-1 max-w-4xl w-full mx-auto px-6 py-6 sm:py-8 flex flex-col justify-center">
+        <div className="card p-8 sm:p-10 shadow-xs bg-white">
+          {/* Header */}
+          <div className="border-b border-[var(--border)] pb-6 mb-6">
+            <h1 className="font-display text-2xl sm:text-3xl font-bold text-[var(--ink)] mb-2">
+              Assessment Instructions
+            </h1>
+            <p className="text-sm text-gray-500">
+              Please review the guidelines below. Camera and microphone permissions will be requested when you begin.
+            </p>
+          </div>
+
+          {/* Authentication Status Banner */}
+          <div className="mb-8">
+            {loadingUser ? (
+              <div className="p-4 rounded-lg bg-[var(--bg)] border border-[var(--border)] text-sm text-gray-500">
+                Checking candidate session...
               </div>
-            </li>
-          ))}
-        </ul>
+            ) : isAuthorized ? (
+              <div className="p-4 rounded-lg bg-green-50/70 border border-green-200 flex flex-wrap items-center justify-between gap-3">
+                <div className="flex items-center gap-3">
+                  <span className="w-8 h-8 rounded-full bg-green-100 text-green-700 flex items-center justify-center font-bold text-sm shrink-0">
+                    ✓
+                  </span>
+                  <div>
+                    <p className="text-xs font-semibold uppercase tracking-wider text-green-700">
+                      Verified Thapar ID
+                    </p>
+                    <p className="text-sm font-medium text-gray-800">
+                      {user.email} {user.name ? `(${user.name})` : ""}
+                    </p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={handleSignOut}
+                  className="text-xs text-gray-500 hover:text-red-600 underline cursor-pointer"
+                >
+                  Switch account
+                </button>
+              </div>
+            ) : (
+              <div className="p-5 rounded-lg bg-amber-50/80 border border-amber-200 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div className="flex items-start gap-3">
+                  <span className="w-8 h-8 rounded-full bg-amber-100 text-amber-700 flex items-center justify-center font-bold text-sm shrink-0 mt-0.5">
+                    !
+                  </span>
+                  <div>
+                    <p className="text-sm font-semibold text-amber-900">
+                      Thapar Email Required
+                    </p>
+                    <p className="text-xs text-amber-800 mt-0.5">
+                      You must sign in with your <span className="font-semibold">@thapar.edu</span> ID to unlock and take the test.
+                    </p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={handleSignIn}
+                  className="bg-[#3A94C2] hover:bg-[#317da4] text-white text-xs sm:text-sm font-medium px-5 py-2.5 rounded-full cursor-pointer transition-all shrink-0 shadow-xs"
+                >
+                  Sign In with Thapar ID
+                </button>
+              </div>
+            )}
+          </div>
 
-        <p className="text-sm text-gray-500 mb-8">
-          Repeated violations of the rules above can result in your test being
-          automatically submitted.
-        </p>
+          {/* Exam Rules & Guidelines */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+            {/* Format Column */}
+            <div className="p-5 rounded-xl border border-[var(--border)] bg-[var(--bg)]/60">
+              <h3 className="font-display font-bold text-base text-[var(--ink)] mb-3 flex items-center gap-2">
+                <span className="w-2 h-2 rounded-full bg-[#3A94C2]" />
+                Format & Navigation
+              </h3>
+              <ul className="text-xs sm:text-sm text-gray-600 space-y-2.5">
+                <li>• 10 questions covering aptitude and technical core.</li>
+                <li>• 30-minute strict time window with automated timer.</li>
+                <li>• Palette navigation: mark questions for review and return at any time.</li>
+                <li>• Responses can be modified until final submission.</li>
+              </ul>
+            </div>
 
-        <div className="flex flex-col items-start gap-4">
-          <button onClick={handleAccept} className="btn-primary cursor-pointer">
-            I Agree — Enable Camera & Mic
-          </button>
-          {error && <p className="text-red-600 text-sm font-medium">{error}</p>}
+            {/* Proctoring Column */}
+            <div className="p-5 rounded-xl border border-[var(--border)] bg-[var(--bg)]/60">
+              <h3 className="font-display font-bold text-base text-[var(--ink)] mb-3 flex items-center gap-2">
+                <span className="w-2 h-2 rounded-full bg-[#3A94C2]" />
+                Proctoring Standards
+              </h3>
+              <ul className="text-xs sm:text-sm text-gray-600 space-y-2.5">
+                <li>• Camera & mic must remain active in fullscreen mode.</li>
+                <li>• Switching tabs or losing window focus triggers violation warnings.</li>
+                <li>• Reaching 5 proctoring strikes auto-submits your attempt immediately.</li>
+                <li>• Maintain a quiet, well-lit environment throughout.</li>
+              </ul>
+            </div>
+          </div>
+
+          {/* Action Footer */}
+          <div className="border-t border-[var(--border)] pt-6 flex flex-col items-start gap-4">
+            {isAuthorized ? (
+              <>
+                <button
+                  onClick={handleAccept}
+                  className="bg-[#3A94C2] hover:bg-[#317da4] text-white font-medium text-sm sm:text-base px-8 py-3 rounded-full cursor-pointer transition-all shadow-xs hover:shadow-md"
+                >
+                  I Agree — Enable Camera & Mic
+                </button>
+                {error && <p className="text-red-600 text-xs sm:text-sm font-medium">{error}</p>}
+              </>
+            ) : (
+              <div className="text-xs sm:text-sm text-gray-500 font-normal">
+                Please sign in with your Thapar ID above to proceed with the test.
+              </div>
+            )}
+          </div>
         </div>
-      </div>
+      </main>
+
+      {/* Bottom spacer */}
+      <footer className="py-6" />
     </div>
   );
 }

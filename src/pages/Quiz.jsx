@@ -350,12 +350,12 @@ export default function Quiz() {
 
   const getPaletteButtonClass = (status, isCurrent) => {
     let base = "";
-     switch (status) {
+    switch (status) {
       case "answered":
-        base = "bg-green-600 text-white";
+        base = "bg-[#3ac26c] text-white";
         break;
       case "marked":
-        base = "bg-purple-600 text-white";
+        base = "bg-[#c9cf30] text-white";
         break;
       case "not-answered":
         base = "bg-red-600 text-white";
@@ -365,7 +365,7 @@ export default function Quiz() {
         base = "bg-gray-100 border border-[var(--border)] text-gray-500";
         break;
     }
-    return `${base} ${isCurrent ? "ring-2 ring-[var(--blue)]" : ""}`;
+    return `${base} ${isCurrent ? "ring-2 ring-[#3A94C2] ring-offset-2" : ""}`;
   };
 
   return (
@@ -380,25 +380,18 @@ export default function Quiz() {
           </div>
 
           {/* Prominent Timer */}
-          <div className="flex items-center gap-2 bg-white px-5 py-2.5 rounded-lg border border-[var(--border)] shadow-2xs">
+          <div className="flex items-center gap-2 bg-white px-5 py-2.5 rounded-full border border-[var(--border)] shadow-2xs">
             <span className="text-xs uppercase font-bold text-gray-500 tracking-wider">
               Time Left:
             </span>
             <span
               className={`font-display text-2xl font-bold ${
-                timeRemaining <= 300 ? "text-red-600 animate-pulse" : "text-[var(--blue)]"
+                timeRemaining <= 300 ? "text-red-600 animate-pulse" : "text-[#3A94C2]"
               }`}
             >
               {formatTime(timeRemaining)}
             </span>
           </div>
-
-          <button
-            onClick={() => submitQuiz("manual")}
-            className="btn-primary cursor-pointer text-sm"
-          >
-            Submit Test
-          </button>
         </div>
 
         {/* Content Layout */}
@@ -412,7 +405,7 @@ export default function Quiz() {
                   Question {currentIndex + 1} of {questions.length}
                 </span>
                 {markedForReview.has(currentQuestion.id) && (
-                  <span className="text-xs font-semibold px-2.5 py-1 rounded bg-[var(--cyan)] text-white">
+                  <span className="text-xs font-semibold px-2.5 py-1 rounded bg-[#c9cf30] text-white">
                     Marked for Review
                   </span>
                 )}
@@ -442,16 +435,16 @@ export default function Quiz() {
                       key={opt.id}
                       type="button"
                       onClick={() => answerQuestion(currentQuestion.id, opt.id)}
-                      className={`w-full text-left p-4 rounded-lg border transition-colors cursor-pointer flex items-center gap-3 ${
+                      className={`w-full text-left p-4 rounded-xl border transition-colors cursor-pointer flex items-center gap-3 ${
                         isSelected
-                          ? "border-[var(--blue)] bg-blue-50/50 text-[var(--ink)] font-medium"
+                        ? "border-[#3ac26c] bg-[#3ac26c]/10 text-[var(--ink)] font-medium"
                           : "border-[var(--border)] bg-white hover:bg-[var(--bg)] text-[var(--ink)]"
                       }`}
                     >
                       <span
                         className={`w-5 h-5 rounded-full border flex items-center justify-center text-xs shrink-0 ${
                           isSelected
-                            ? "border-[var(--blue)] bg-[var(--blue)] text-white"
+                            ? "border-[#3ac26c] bg-[#3A94C2] text-white"
                             : "border-gray-400 bg-white"
                         }`}
                       >
@@ -471,7 +464,7 @@ export default function Quiz() {
                   <button
                     type="button"
                     onClick={() => clearResponse(currentQuestion.id)}
-                    className="bg-white border border-[var(--border)] text-[var(--ink)] font-semibold rounded-[8px] px-7 py-3 hover:bg-[var(--bg)] transition-colors cursor-pointer"
+                    className="bg-white border border-[var(--border)] text-[var(--ink)] font-medium rounded-full px-6 py-2.5 hover:bg-[var(--bg)] transition-colors cursor-pointer text-sm"
                   >
                     Clear Response
                   </button>
@@ -481,7 +474,7 @@ export default function Quiz() {
                       toggleMarkForReview(currentQuestion.id);
                       nextQuestion();
                     }}
-                    className="bg-white border border-[var(--border)] text-[var(--ink)] font-semibold rounded-[8px] px-7 py-3 hover:bg-[var(--bg)] transition-colors cursor-pointer"
+                    className="bg-white border border-[var(--border)] text-[var(--ink)] font-medium rounded-full px-6 py-2.5 hover:bg-[var(--bg)] transition-colors cursor-pointer text-sm"
                   >
                     Mark for Review & Next
                   </button>
@@ -489,7 +482,7 @@ export default function Quiz() {
                 <button
                   type="button"
                   onClick={nextQuestion}
-                  className="btn-primary cursor-pointer"
+                  className="bg-[#3ac26c] hover:bg-[#3ac26c] text-white font-medium px-8 py-2.5 rounded-full cursor-pointer transition-all shadow-xs text-sm"
                 >
                   Save & Next
                 </button>
@@ -525,12 +518,12 @@ export default function Quiz() {
 
               {/* Legend */}
               <div className="grid grid-cols-2 gap-2 text-xs mb-6 p-3 rounded-lg bg-[var(--bg)] border border-[var(--border)]">
-                                <div className="flex items-center gap-2">
-                  <span className="w-3.5 h-3.5 rounded bg-green-600 inline-block shrink-0" />
+                <div className="flex items-center gap-2">
+                  <span className="w-3.5 h-3.5 rounded bg-[#3ac26c] inline-block shrink-0" />
                   <span className="text-gray-600">Answered</span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <span className="w-3.5 h-3.5 rounded bg-purple-600 inline-block shrink-0" />
+                  <span className="w-3.5 h-3.5 rounded bg-[#c9cf30] inline-block shrink-0" />
                   <span className="text-gray-600">Marked</span>
                 </div>
                 <div className="flex items-center gap-2">
@@ -569,7 +562,7 @@ export default function Quiz() {
                 <button
                   type="button"
                   onClick={() => submitQuiz("manual")}
-                  className="btn-primary w-full cursor-pointer"
+                  className="bg-[#3ac26c] hover:bg-[#317da4] text-white font-medium py-3 rounded-full w-full cursor-pointer transition-all shadow-xs"
                 >
                   Submit Test
                 </button>
