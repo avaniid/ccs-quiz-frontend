@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Quiz Results</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    :root{--bg:#0f1220;--card:#171a2b;--muted:#9aa4bf;--brand:#7f9cf5;--brand-2:#22d3ee;--text:#e7eaf6;--ok:#4ade80;--warn:#facc15;--bad:#f87171;--line:rgba(127,156,245,.2)}
+    *{box-sizing:border-box}
+    body{margin:0;background:radial-gradient(1200px 600px at 10% -10%,rgba(127,156,245,.15),transparent 60%),var(--bg);color:var(--text);font-family:Inter,system-ui,sans-serif}
+    .nav{display:flex;align-items:center;justify-content:space-between;padding:16px 22px;position:sticky;top:0;z-index:20;background:rgba(15,18,32,.9);backdrop-filter:blur(10px);border-bottom:1px solid var(--line)}
+    .brand{display:flex;align-items:center;gap:12px;font-weight:800}
+    .logo{width:38px;height:38px;object-fit:contain;border-radius:8px}
+    .nav a{color:var(--text);text-decoration:none;font-weight:600;padding:8px 12px;border-radius:10px}
+    .nav a:hover{background:rgba(127,156,245,.12)}
+    .wrap{max-width:1500px;margin:22px auto;padding:0 18px 60px}
+    .card{background:rgba(23,26,43,.9);border:1px solid var(--line);border-radius:16px;padding:18px;margin-bottom:16px}
+    h1{margin:0;font-size:24px} h2{margin:0 0 10px;font-size:17px}
+    .muted{color:var(--muted)} .small{font-size:12px}
+    .head{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:14px}
+    .btn{display:inline-block;padding:9px 14px;border-radius:10px;font-weight:700;border:0;cursor:pointer;text-decoration:none;background:linear-gradient(135deg,var(--brand),var(--brand-2));color:#0b1022;font-size:14px}
+    .btn.secondary{background:transparent;color:var(--text);border:1px solid var(--line)}
+    .tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px}
+    .tile{border:1px solid var(--line);border-radius:12px;padding:11px 12px}
+    .tile span{font-size:12px;color:var(--muted)} .tile b{display:block;font-size:22px;margin-top:2px}
+    .filters{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:12px}
+    input[type=search],select{background:#0f1220;color:var(--text);border:1px solid var(--line);border-radius:10px;padding:8px 10px;font-size:14px}
+    input[type=search]{min-width:260px}
+    .tablewrap{overflow:auto;max-height:70vh;border:1px solid var(--line);border-radius:12px}
+    table{width:100%;border-collapse:collapse;font-size:13px}
+    th,td{text-align:left;padding:7px 9px;border-bottom:1px solid var(--line);white-space:nowrap;vertical-align:top}
+    thead th{position:sticky;top:0;background:#141729;color:var(--muted);font-weight:600;cursor:pointer;user-select:none;z-index:1}
+    thead th.sorted{color:var(--text)}
+    tbody tr:hover{background:rgba(127,156,245,.06)}
+    .num{text-align:right;font-variant-numeric:tabular-nums}
+    .pill{display:inline-block;padding:2px 8px;border-radius:999px;font-size:12px;font-weight:700}
+    .s-submitted{background:rgba(74,222,128,.15);color:var(--ok)}
+    .s-in_progress{background:rgba(34,211,238,.15);color:var(--brand-2)}
+    .s-not_started{background:rgba(154,164,191,.15);color:var(--muted)}
+    .s-not_submitted{background:rgba(248,113,113,.15);color:var(--bad)}
+    .s-no_paper{background:rgba(250,204,21,.12);color:var(--warn)}
+    .ok{color:var(--ok)} .warn{color:var(--warn)} .bad{color:var(--bad)}
+    .sub{color:var(--muted);font-size:12px}
+    .linkbtn{background:none;border:0;color:var(--brand);cursor:pointer;font:inherit;padding:0}
+    .modal{position:fixed;inset:0;background:rgba(0,0,0,.7);display:none;align-items:center;justify-content:center;z-index:50;padding:20px}
+    .modal.open{display:flex}
+    .modal .box{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px;max-width:680px;width:100%}
+    .modal img{width:100%;border-radius:10px;background:#000;min-height:120px}
+  </style>
+</head>
+<body>
+  <header class="nav">
+    <div class="brand"><img src="/static/images/ccs-logo.png" alt="" class="logo"> <span>CCS Admin</span></div>
+    <nav>
+      <a href="/admin/home">Home</a>
+      <a href="/admin/import">Import</a>
+      <a href="/admin/results">Results</a>
+      <a href="/admin/logout">Logout</a>
+    </nav>
+  </header>
+
+  <main class="wrap">
+    <div class="head">
+      <div>
+        <h1>Quiz Results</h1>
+        <div class="muted small" id="meta">Loading...</div>
+      </div>
+      <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+        <label class="muted small"><input type="checkbox" id="auto"> Auto-refresh every 30s</label>
+        <button class="btn secondary" id="refresh">Refresh</button>
+        <a class="btn" href="/admin/api/results.csv">Download CSV</a>
+      </div>
+    </div>
+
+    <section class="card">
+      <div class="tiles" id="tiles"></div>
+    </section>
+
+    <section class="card">
+      <h2>By shift</h2>
+      <div class="tablewrap" style="max-height:none">
+        <table id="shiftTable"></table>
+      </div>
+    </section>
+
+    <section class="card">
+      <div class="filters">
+        <input type="search" id="q" placeholder="Search email, name or roll">
+        <select id="fShift"><option value="">All shifts</option></select>
+        <select id="fStatus">
+          <option value="">All statuses</option>
+          <option value="submitted">Submitted</option>
+          <option value="in_progress">In progress</option>
+          <option value="not_started">Not started</option>
+          <option value="not_submitted">Time over, not submitted</option>
+          <option value="no_paper">No paper</option>
+        </select>
+        <label class="small"><input type="checkbox" id="fSus"> Needs review only</label>
+        <span class="muted small" id="count"></span>
+      </div>
+      <div class="tablewrap">
+        <table>
+          <thead><tr id="headRow"></tr></thead>
+          <tbody id="body"></tbody>
+        </table>
+      </div>
+      <p class="muted small" style="margin-top:10px">
+        <b>Needs review</b> = submitted with no webcam snapshot, 10+ warnings, auto-submitted for warnings,
+        or finished in under a fifth of the time. "Submit type" is inferred: <i>warnings</i> when the strike
+        limit was hit, <i>timeout</i> when it ended at the time limit, otherwise <i>manual</i>.
+      </p>
+    </section>
+  </main>
+
+  <div class="modal" id="modal">
+    <div class="box">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+        <b id="modalTitle"></b>
+        <button class="btn secondary" id="modalClose">Close</button>
+      </div>
+      <img id="modalImg" alt="Snapshot taken at submit">
+    </div>
+  </div>
+
+<script>
+const STATUS_LABEL = {
+  submitted: 'Submitted', in_progress: 'In progress', not_started: 'Not started',
+  not_submitted: 'Time over, not submitted', no_paper: 'No paper',
+};
+const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const fmtTime = (iso) => iso ? new Date(iso).toLocaleString('en-IN', {
+  timeZone: 'Asia/Kolkata', day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false,
+}) : '';
+const fmtDur = (s) => s == null ? '' : `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
+const avg = (xs) => xs.length ? xs.reduce((a, b) => a + b, 0) / xs.length : null;
+const round1 = (x) => x == null ? '-' : (Math.round(x * 10) / 10).toString();
+
+let data = { rows: [], duration_minutes: 0, max_strikes: 15 };
+let sortKey = 'shift', sortDir = 1;
+
+function needsReview(r) {
+  if (r.status !== 'submitted') return false;
+  const fast = r.time_taken_sec != null && data.duration_minutes &&
+    r.time_taken_sec < data.duration_minutes * 60 / 5;
+  return !r.has_snapshot || r.flags >= 10 || r.submit_kind === 'warnings' || fast;
+}
+function topFlags(fc) {
+  return Object.entries(fc || {}).sort((a, b) => b[1] - a[1]).slice(0, 3)
+    .map(([t, n]) => `${t}&nbsp;×${n}`).join(', ');
+}
+
+const COLS = [
+  { k: 'idx', t: '#', num: true, v: (r, i) => i + 1, nosort: true },
+  { k: 'email', t: 'Candidate', v: (r) => `${esc(r.email) || '<span class="muted">(unknown)</span>'}${r.name || r.roll ? `<div class="sub">${esc(r.name)}${r.name && r.roll ? ' · ' : ''}${esc(r.roll)}</div>` : ''}` },
+  { k: 'shift', t: 'Shift', num: true, v: (r) => r.shift || '-' },
+  { k: 'status', t: 'Status', v: (r) => `<span class="pill s-${r.status}">${STATUS_LABEL[r.status] || r.status}</span>${needsReview(r) ? ' <span class="warn" title="Needs review">⚑</span>' : ''}` },
+  { k: 'started_at', t: 'Started', v: (r) => fmtTime(r.started_at) },
+  { k: 'submitted_at', t: 'Submitted', v: (r) => fmtTime(r.submitted_at) },
+  { k: 'time_taken_sec', t: 'Time', num: true, v: (r) => fmtDur(r.time_taken_sec) },
+  { k: 'submit_kind', t: 'Submit type', v: (r) => r.submit_kind === 'warnings' ? '<span class="bad">warnings</span>' : esc(r.submit_kind) },
+  { k: 'answered', t: 'Answered', num: true, v: (r) => r.total_questions ? `${r.answered}/${r.total_questions}` : '' },
+  { k: 'correct', t: 'Correct', num: true, v: (r) => r.status === 'submitted' ? `<span class="ok">${r.correct}</span>` : '' },
+  { k: 'wrong', t: 'Wrong', num: true, v: (r) => r.status === 'submitted' ? `<span class="bad">${r.wrong}</span>` : '' },
+  { k: 'marks', t: 'Marks', num: true, v: (r) => r.marks == null ? '' : `<b>${r.marks}</b>` },
+  { k: 'flags', t: 'Warnings', num: true, v: (r) => `<span class="${r.flags >= 10 ? 'bad' : r.flags >= 5 ? 'warn' : ''}">${r.flags}</span><span class="sub"> / ${r.strikes} strikes</span>` },
+  { k: 'flag_counts', t: 'Top violations', nosort: true, v: (r) => `<span class="sub">${topFlags(r.flag_counts)}</span>` },
+  { k: 'has_snapshot', t: 'Snapshot', v: (r) => r.has_snapshot
+      ? `<button class="linkbtn" data-snap="${esc(r.uid)}" data-who="${esc(r.email)}">view</button>`
+      : (r.status === 'submitted' ? '<span class="bad">none</span>' : '') },
+];
+
+function renderHead() {
+  document.getElementById('headRow').innerHTML = COLS.map((c) =>
+    `<th data-k="${c.k}" class="${c.num ? 'num' : ''} ${sortKey === c.k ? 'sorted' : ''}">${c.t}${sortKey === c.k ? (sortDir > 0 ? ' ▲' : ' ▼') : ''}</th>`).join('');
+}
+
+function renderSummary(rows) {
+  const withPaper = rows.filter((r) => r.status !== 'no_paper');
+  const sub = rows.filter((r) => r.status === 'submitted');
+  const marks = sub.map((r) => r.marks).filter((m) => m != null);
+  const times = sub.map((r) => r.time_taken_sec).filter((t) => t != null);
+  const by = (s) => rows.filter((r) => r.status === s).length;
+  const tiles = [
+    ['Candidates with paper', withPaper.length],
+    ['Submitted', `<span class="ok">${sub.length}</span>`],
+    ['In progress', `<span style="color:var(--brand-2)">${by('in_progress')}</span>`],
+    ['Not started', by('not_started')],
+    ['Time over, not submitted', `<span class="${by('not_submitted') ? 'bad' : ''}">${by('not_submitted')}</span>`],
+    ['Average marks', round1(avg(marks))],
+    ['Highest / lowest', marks.length ? `${Math.max(...marks)} / ${Math.min(...marks)}` : '-'],
+    ['Average time', times.length ? fmtDur(Math.round(avg(times))) : '-'],
+    ['Average warnings', round1(avg(sub.map((r) => r.flags)))],
+    ['Needs review', `<span class="${rows.filter(needsReview).length ? 'warn' : ''}">${rows.filter(needsReview).length}</span>`],
+    ['Signed in, no paper', `<span class="${by('no_paper') ? 'warn' : ''}">${by('no_paper')}</span>`],
+  ];
+  document.getElementById('tiles').innerHTML = tiles.map(([t, v]) => `<div class="tile"><span>${t}</span><b>${v}</b></div>`).join('');
+
+  // Per shift
+  const shifts = [...new Set(withPaper.map((r) => r.shift))].sort((a, b) => a - b);
+  const head = '<tr><th>Shift</th><th>Starts (IST)</th><th class="num">Papers</th><th class="num">Submitted</th><th class="num">In progress</th><th class="num">Not started</th><th class="num">Not submitted</th><th class="num">Avg marks</th><th class="num">Top marks</th><th class="num">Avg warnings</th></tr>';
+  const body = shifts.map((s) => {
+    const rs = withPaper.filter((r) => r.shift === s);
+    const ss = rs.filter((r) => r.status === 'submitted');
+    const ms = ss.map((r) => r.marks).filter((m) => m != null);
+    const start = rs.find((r) => r.shift_start)?.shift_start;
+    const n = (st) => rs.filter((r) => r.status === st).length;
+    return `<tr><td>Shift ${s || '-'}</td><td>${start ? fmtTime(start) : '<span class="bad">not set</span>'}</td>
+      <td class="num">${rs.length}</td><td class="num ok">${ss.length}</td><td class="num">${n('in_progress')}</td>
+      <td class="num">${n('not_started')}</td><td class="num ${n('not_submitted') ? 'bad' : ''}">${n('not_submitted')}</td>
+      <td class="num">${round1(avg(ms))}</td><td class="num">${ms.length ? Math.max(...ms) : '-'}</td>
+      <td class="num">${round1(avg(ss.map((r) => r.flags)))}</td></tr>`;
+  }).join('');
+  document.getElementById('shiftTable').innerHTML = head + (body || '<tr><td colspan="10" class="muted">No papers assigned yet.</td></tr>');
+
+  const sel = document.getElementById('fShift');
+  const cur = sel.value;
+  sel.innerHTML = '<option value="">All shifts</option>' + shifts.map((s) => `<option value="${s}">Shift ${s}</option>`).join('');
+  sel.value = cur;
+}
+
+function renderTable() {
+  const q = document.getElementById('q').value.trim().toLowerCase();
+  const fShift = document.getElementById('fShift').value;
+  const fStatus = document.getElementById('fStatus').value;
+  const fSus = document.getElementById('fSus').checked;
+  let rows = data.rows.filter((r) =>
+    (!q || [r.email, r.name, r.roll].some((x) => (x || '').toLowerCase().includes(q))) &&
+    (!fShift || String(r.shift) === fShift) &&
+    (!fStatus || r.status === fStatus) &&
+    (!fSus || needsReview(r)));
+  const key = sortKey;
+  rows.sort((a, b) => {
+    let x = a[key], y = b[key];
+    if (x == null && y == null) return 0;
+    if (x == null) return 1;
+    if (y == null) return -1;
+    if (typeof x === 'string') return x.localeCompare(y) * sortDir;
+    return (x - y) * sortDir;
+  });
+  document.getElementById('count').textContent = `${rows.length} of ${data.rows.length}`;
+  document.getElementById('body').innerHTML = rows.map((r, i) =>
+    '<tr>' + COLS.map((c) => `<td class="${c.num ? 'num' : ''}">${c.v(r, i)}</td>`).join('') + '</tr>').join('')
+    || `<tr><td colspan="${COLS.length}" class="muted">Nothing matches.</td></tr>`;
+}
+
+async function load() {
+  try {
+    const r = await fetch('/admin/api/results');
+    if (r.status === 401 || r.redirected) { location.href = '/admin/login'; return; }
+    if (!r.ok) throw new Error('HTTP ' + r.status);
+    data = await r.json();
+    data.rows = data.rows || [];
+    document.getElementById('meta').textContent =
+      `Updated ${fmtTime(data.generated_at)} IST · quiz length ${data.duration_minutes} min · auto-submit at ${data.max_strikes} strikes`;
+    renderSummary(data.rows);
+    renderHead();
+    renderTable();
+  } catch (e) {
+    document.getElementById('meta').innerHTML = `<span class="bad">Could not load results: ${esc(e.message)}</span>`;
+  }
+}
+
+document.getElementById('headRow').addEventListener('click', (e) => {
+  const th = e.target.closest('th');
+  const col = th && COLS.find((c) => c.k === th.dataset.k);
+  if (!col || col.nosort) return;
+  if (sortKey === col.k) sortDir = -sortDir; else { sortKey = col.k; sortDir = col.num ? -1 : 1; }
+  renderHead(); renderTable();
+});
+['q', 'fShift', 'fStatus', 'fSus'].forEach((id) => document.getElementById(id).addEventListener('input', renderTable));
+document.getElementById('refresh').onclick = load;
+
+let timer = null;
+document.getElementById('auto').addEventListener('change', (e) => {
+  clearInterval(timer);
+  if (e.target.checked) timer = setInterval(load, 30000);
+});
+
+const modal = document.getElementById('modal');
+document.getElementById('body').addEventListener('click', (e) => {
+  const b = e.target.closest('[data-snap]');
+  if (!b) return;
+  document.getElementById('modalTitle').textContent = b.dataset.who;
+  document.getElementById('modalImg').src = '/admin/api/snapshot/' + encodeURIComponent(b.dataset.snap);
+  modal.classList.add('open');
+});
+const closeModal = () => { modal.classList.remove('open'); document.getElementById('modalImg').src = ''; };
+document.getElementById('modalClose').onclick = closeModal;
+modal.addEventListener('click', (e) => { if (e.target === modal) closeModal(); });
+
+load();
+</script>
+</body>
+</html>

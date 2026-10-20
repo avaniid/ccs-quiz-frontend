@@ -115,6 +115,13 @@ func main() {
 		authorized_admin.GET("/api/signed-in-users", admin.ListSignedInUsers)
 		authorized_admin.POST("/assign-slot", admin.AssignSlotToUser)
 		authorized_admin.POST("/reset-attempt", admin.ResetAttempt)
+		// Registration CSV -> papers, and the results page.
+		authorized_admin.GET("/import", admin.ShowImportPage)
+		authorized_admin.POST("/import-candidates", admin.ImportCandidates)
+		authorized_admin.GET("/results", admin.ShowResultsPage)
+		authorized_admin.GET("/api/results", admin.GetResults)
+		authorized_admin.GET("/api/results.csv", admin.DownloadResultsCSV)
+		authorized_admin.GET("/api/snapshot/:uid", admin.GetSnapshot)
 		authorized_admin.GET("/set-shift-timing", func(c *gin.Context) {
 			c.HTML(200, "set_shift_timing.html", nil)
 		})

@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Import Candidates</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    :root{--bg:#0f1220;--card:#171a2b;--muted:#9aa4bf;--brand:#7f9cf5;--brand-2:#22d3ee;--text:#e7eaf6;--ok:#4ade80;--warn:#facc15;--bad:#f87171;--line:rgba(127,156,245,.2)}
+    *{box-sizing:border-box}
+    body{margin:0;background:radial-gradient(1200px 600px at 10% -10%,rgba(127,156,245,.15),transparent 60%),var(--bg);color:var(--text);font-family:Inter,system-ui,sans-serif}
+    .nav{display:flex;align-items:center;justify-content:space-between;padding:16px 22px;position:sticky;top:0;z-index:10;background:rgba(15,18,32,.85);backdrop-filter:blur(10px);border-bottom:1px solid var(--line)}
+    .brand{display:flex;align-items:center;gap:12px;font-weight:800}
+    .logo{width:38px;height:38px;object-fit:contain;border-radius:8px}
+    .nav a{color:var(--text);text-decoration:none;font-weight:600;padding:8px 12px;border-radius:10px}
+    .nav a:hover{background:rgba(127,156,245,.12)}
+    .wrap{max-width:980px;margin:28px auto;padding:0 18px 60px}
+    .card{background:rgba(23,26,43,.9);border:1px solid var(--line);border-radius:16px;padding:22px;margin-bottom:18px}
+    h1{margin:0 0 6px;font-size:26px} h2{margin:0 0 12px;font-size:18px}
+    .muted{color:var(--muted)} .small{font-size:13px}
+    code{background:rgba(127,156,245,.12);padding:1px 6px;border-radius:6px}
+    label{display:block;font-weight:600;margin:14px 0 6px}
+    input[type=number],input[type=file]{background:#0f1220;color:var(--text);border:1px solid var(--line);border-radius:10px;padding:9px 11px}
+    input[type=number]{width:110px}
+    .row{display:flex;gap:22px;flex-wrap:wrap}
+    .btn{display:inline-block;padding:10px 16px;border-radius:10px;font-weight:700;border:0;cursor:pointer;background:linear-gradient(135deg,var(--brand),var(--brand-2));color:#0b1022}
+    .btn.secondary{background:transparent;color:var(--text);border:1px solid var(--line)}
+    .btn:disabled{opacity:.5;cursor:not-allowed}
+    table{width:100%;border-collapse:collapse;font-size:14px}
+    th,td{text-align:left;padding:7px 10px;border-bottom:1px solid var(--line)}
+    th{color:var(--muted);font-weight:600}
+    .ok{color:var(--ok)} .warn{color:var(--warn)} .bad{color:var(--bad)}
+    .tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin:10px 0 16px}
+    .tile{border:1px solid var(--line);border-radius:12px;padding:12px}
+    .tile b{display:block;font-size:24px}
+    details{margin-top:10px} summary{cursor:pointer;font-weight:600}
+    ol{margin:8px 0 0;padding-left:20px} li{margin:4px 0}
+  </style>
+</head>
+<body>
+  <header class="nav">
+    <div class="brand"><img src="/static/images/ccs-logo.png" alt="" class="logo"> <span>CCS Admin</span></div>
+    <nav>
+      <a href="/admin/home">Home</a>
+      <a href="/admin/import">Import</a>
+      <a href="/admin/results">Results</a>
+      <a href="/admin/logout">Logout</a>
+    </nav>
+  </header>
+
+  <main class="wrap">
+    <section class="card">
+      <h1>Import candidates from CSV</h1>
+      <p class="muted">Gives every row of the sheet a paper for its shift. Candidates do not need to have signed in yet:
+        when they sign in with the same email, their paper is waiting.</p>
+      <ol class="muted small">
+        <li>The sheet needs an <code>email</code> column. It must be the exact Google account the candidate will sign in with.</li>
+        <li>Add a <code>shift</code> column (1, 2, 3...) to choose shifts yourself, <b>or</b> leave it out and set
+          "candidates per shift" below to fill shifts in file order.</li>
+        <li>Optional <code>name</code> and <code>roll</code> columns show up on the results page.</li>
+        <li>Add the quiz questions first (tagged with their shift). Set each shift's timing before the exam.</li>
+        <li>Always <b>Preview</b> first. Importing again is safe: papers are replaced, not duplicated,
+          and anyone who already opened their paper is left untouched.</li>
+      </ol>
+    </section>
+
+    <section class="card">
+      <h2>Upload</h2>
+      <form id="importForm">
+        <label for="file">CSV file</label>
+        <input type="file" id="file" name="file" accept=".csv,text/csv" required>
+        <div class="row">
+          <div>
+            <label for="qps">Questions per paper</label>
+            <input type="number" id="qps" name="questions_per_set" min="1" value="10" required>
+          </div>
+          <div>
+            <label for="perShift">Candidates per shift</label>
+            <input type="number" id="perShift" name="per_shift" min="1" value="50">
+            <div class="muted small">only used when the sheet has no shift column</div>
+          </div>
+          <div>
+            <label for="startShift">First shift number</label>
+            <input type="number" id="startShift" name="start_shift" min="1" value="1">
+          </div>
+        </div>
+        <div style="margin-top:18px;display:flex;gap:10px">
+          <button type="button" class="btn secondary" id="previewBtn">Preview (saves nothing)</button>
+          <button type="button" class="btn" id="importBtn" disabled>Import</button>
+        </div>
+        <p class="muted small" id="hint" style="margin-top:8px">Preview first; Import unlocks after a clean preview of the same file.</p>
+      </form>
+    </section>
+
+    <section class="card" id="resultCard" style="display:none">
+      <h2 id="resultTitle"></h2>
+      <div id="result"></div>
+    </section>
+  </main>
+
+<script>
+const form = document.getElementById('importForm');
+const fileInput = document.getElementById('file');
+const previewBtn = document.getElementById('previewBtn');
+const importBtn = document.getElementById('importBtn');
+const resultCard = document.getElementById('resultCard');
+const resultTitle = document.getElementById('resultTitle');
+const resultBox = document.getElementById('result');
+
+const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+
+// Import is only offered for the exact file and settings that were previewed.
+let previewedKey = null;
+const formKey = () => {
+  const f = fileInput.files[0];
+  return f ? [f.name, f.size, f.lastModified, form.qps.value, form.perShift.value, form.startShift.value].join('|') : '';
+};
+form.addEventListener('input', () => { importBtn.disabled = formKey() !== previewedKey; });
+
+function issueList(title, items, cls) {
+  if (!items || !items.length) return '';
+  const rows = items.map((i) => `<tr><td>${i.row}</td><td>${esc(i.email)}</td><td>${esc(i.reason)}</td></tr>`).join('');
+  return `<details${cls === 'bad' ? ' open' : ''}><summary class="${cls}">${title} (${items.length}${items.length >= 300 ? '+' : ''})</summary>
+    <table><tr><th>Row</th><th>Email</th><th>Reason</th></tr>${rows}</table></details>`;
+}
+
+function render(res, dry) {
+  const shifts = Object.keys(res.per_shift || {}).map(Number).sort((a, b) => a - b);
+  const shiftRows = shifts.map((s) => {
+    const small = res.small_shifts && res.small_shifts[s];
+    const fb = (res.fallback_shifts || []).includes(s);
+    const notes = [
+      fb ? '<span class="warn">no questions tagged for this shift: drawn from the whole bank</span>' : '',
+      small ? `<span class="bad">only ${small} questions available (asked for ${res.questions_per_set})</span>` : '',
+    ].filter(Boolean).join('<br>');
+    return `<tr><td>Shift ${s}</td><td>${res.per_shift[s]}</td><td>${notes || '<span class="ok">ok</span>'}</td></tr>`;
+  }).join('');
+  const problems = (res.invalid?.length || 0) + (res.duplicates?.length || 0) + (res.not_allowed?.length || 0);
+
+  resultTitle.innerHTML = dry
+    ? 'Preview <span class="muted small">(nothing saved yet)</span>'
+    : '<span class="ok">Imported</span>';
+  resultBox.innerHTML = `
+    <div class="tiles">
+      <div class="tile"><span class="muted small">Rows in file</span><b>${res.rows}</b></div>
+      <div class="tile"><span class="muted small">${dry ? 'Will get a paper' : 'Got a paper'}</span><b class="ok">${res.valid}</b></div>
+      <div class="tile"><span class="muted small">New</span><b>${res.created}</b></div>
+      <div class="tile"><span class="muted small">Replaced</span><b>${res.replaced}</b></div>
+      <div class="tile"><span class="muted small">Skipped</span><b class="${problems ? 'warn' : ''}">${problems + (res.already_started?.length || 0)}</b></div>
+    </div>
+    <table><tr><th>Shift</th><th>Candidates</th><th>Questions</th></tr>${shiftRows || '<tr><td colspan="3" class="muted">nobody</td></tr>'}</table>
+    ${issueList('Invalid rows', res.invalid, 'bad')}
+    ${issueList('Duplicate emails', res.duplicates, 'warn')}
+    ${issueList('Not allowed to sign in', res.not_allowed, 'bad')}
+    ${issueList('Already started - left unchanged', res.already_started, 'warn')}
+  `;
+  resultCard.style.display = '';
+}
+
+async function send(dryRun) {
+  if (!fileInput.files[0]) { alert('Choose a CSV file first.'); return; }
+  const data = new FormData(form);
+  data.set('dry_run', dryRun ? 'true' : 'false');
+  previewBtn.disabled = importBtn.disabled = true;
+  resultCard.style.display = '';
+  resultTitle.textContent = dryRun ? 'Checking...' : 'Importing...';
+  resultBox.innerHTML = '';
+  try {
+    const r = await fetch('/admin/import-candidates', { method: 'POST', body: data });
+    const out = await r.json().catch(() => ({ error: 'unexpected response (' + r.status + ')' }));
+    if (!r.ok) {
+      resultTitle.innerHTML = '<span class="bad">Error</span>';
+      resultBox.innerHTML = `<p class="bad">${esc(out.error)}</p>`;
+      previewedKey = null;
+      return;
+    }
+    const res = out.result || out;
+    render(res, dryRun);
+    if (out.warning) resultBox.insertAdjacentHTML('afterbegin', `<p class="warn">${esc(out.warning)}</p>`);
+    previewedKey = dryRun && res.valid > 0 ? formKey() : null;
+  } catch (e) {
+    resultTitle.innerHTML = '<span class="bad">Error</span>';
+    resultBox.innerHTML = `<p class="bad">${esc(e)}</p>`;
+    previewedKey = null;
+  } finally {
+    previewBtn.disabled = false;
+    importBtn.disabled = formKey() !== previewedKey;
+  }
+}
+
+previewBtn.onclick = () => send(true);
+importBtn.onclick = () => {
+  if (confirm('Create the papers now? Anyone in the file who already has an unopened paper gets a new one.')) send(false);
+};
+</script>
+</body>
+</html>

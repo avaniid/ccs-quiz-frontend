@@ -33,6 +33,9 @@ var (
 	Updates                 Collection //and now the db architecture has been fucked. UPdates collection honi hi nhi chaiye , but I am in no mood of updating the QuizTrack and its validation all over the code.
 	Shifts                  Collection
 	Slot_Requests           Collection
+	// One row per candidate imported from the registration CSV: their email,
+	// name, roll number and shift, for the results page.
+	Candidates Collection
 )
 
 func Init() error {
@@ -77,6 +80,7 @@ func Init() error {
 	Updates = Collection{DATABASE.Collection("updates"), ctx}
 	Shifts = Collection{DATABASE.Collection("shift_data"), ctx}
 	Slot_Requests = Collection{DATABASE.Collection("slot_requests"), ctx}
+	Candidates = Collection{DATABASE.Collection("candidates"), ctx}
 
 	ensureIndexes(ctx)
 	return nil
@@ -110,6 +114,7 @@ func ensureIndexes(ctx context.Context) {
 		{Quiz_Responses, unique("userID")},
 		{Quiz_Track, unique("userID")},
 		{Slot_Requests, unique("userID")},
+		{Candidates, unique("userID")},
 		{Shifts, unique("shift")},
 		{Quiz_Answers, unique("questionID")},
 	}

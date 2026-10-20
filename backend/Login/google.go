@@ -42,6 +42,10 @@ func HandleAuthCallback(c *gin.Context) {
 		c.AbortWithError(http.StatusInternalServerError, err)
 		return
 	}
+	// The user id is derived from the email, and papers imported from the
+	// registration CSV are keyed the same way. Normalise it so "Abc@Thapar.edu"
+	// in the sheet and "abc@thapar.edu" from Google land on the same candidate.
+	user.Email = NormalizeEmail(user.Email)
 	// Optional allowlist, e.g. ALLOWED_EMAIL_DOMAINS=thapar.edu. Unset = any
 	// Google account may sign in.
 	if !emailAllowed(user.Email) {
@@ -95,6 +99,15 @@ func setSessionCookie(c *gin.Context, value string, maxAge int) {
 	}
 	c.SetCookie("session_token", value, maxAge, "/", "", secure, true)
 }
+
+// NormalizeEmail is the one canonical form of an address, used wherever an
+// email becomes a user id (sign-in and the CSV import).
+func NormalizeEmail(email string) string {
+	return strings.ToLower(strings.TrimSpace(email))
+}
+
+// EmailAllowed reports whether this address may sign in (ALLOWED_EMAIL_DOMAINS).
+func EmailAllowed(email string) bool { return emailAllowed(email) }
 
 func emailAllowed(email string) bool {
 	allowed := os.Getenv("ALLOWED_EMAIL_DOMAINS")

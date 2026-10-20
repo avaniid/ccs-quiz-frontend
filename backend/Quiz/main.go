@@ -35,6 +35,10 @@ var (
 // It covers the auto-submit's network round trip and its retries.
 const submitGrace = 2 * time.Minute
 
+// SubmitGrace is submitGrace, for code outside this package that needs to know
+// when an unsubmitted attempt can no longer be handed in.
+func SubmitGrace() time.Duration { return submitGrace }
+
 // TestDuration is the exam length (TEST_DURATION, in minutes, default 80).
 func TestDuration() time.Duration {
 	minutes := 80
