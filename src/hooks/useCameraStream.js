@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { acquireCameraStream } from "./cameraStore";
+import { createDeviceWatchdog } from "./deviceWatchdog";
 
 export default function useCameraStream(onViolation) {
   const onViolationRef = useRef(onViolation);
@@ -12,10 +13,7 @@ export default function useCameraStream(onViolation) {
 
   useEffect(() => {
     let cancelled = false;
-
-    const handleTrackEnded = () => {
-      onViolationRef.current?.("camera-lost");
-    };
+    let watchdog = null;
 
     async function start() {
       try {
@@ -24,8 +22,12 @@ export default function useCameraStream(onViolation) {
         const mediaStream = await acquireCameraStream();
         if (cancelled) return;
         streamRef.current = mediaStream;
-        mediaStream.getTracks().forEach((track) => {
-          track.addEventListener("ended", handleTrackEnded);
+        // Flags the camera or mic being blocked, muted or frozen mid-test;
+        // see deviceWatchdog.js for why the "ended" event alone missed it.
+        watchdog = createDeviceWatchdog({
+          stream: mediaStream,
+          getVideo: () => videoRef.current,
+          onViolation: (type) => onViolationRef.current?.(type),
         });
         setStream(mediaStream);
       } catch (err) {
@@ -39,13 +41,8 @@ export default function useCameraStream(onViolation) {
 
     return () => {
       cancelled = true;
-      const mediaStream = streamRef.current;
-      if (mediaStream) {
-        mediaStream.getTracks().forEach((track) => {
-          track.removeEventListener("ended", handleTrackEnded);
-        });
-        streamRef.current = null;
-      }
+      watchdog?.dispose();
+      streamRef.current = null;
       // Deliberately NOT releasing the device here. React remounts this effect
       // (StrictMode in development, and any re-render of the route), and
       // stopping the camera only to reopen it a moment later is exactly the

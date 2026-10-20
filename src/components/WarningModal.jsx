@@ -25,6 +25,10 @@ export default function WarningModal({
         return "A voice that didn't match your enrolled voice was heard. Only you should be speaking near the mic.";
       case "camera-lost":
         return "Camera or microphone access was lost. Reconnect them to continue the test.";
+      case "camera-blocked":
+        return "Your camera is blocked or turned off. Allow it from the camera icon in the address bar (and your system's camera switch), then reload this page. Your answers are saved. Every few seconds it stays off counts as another warning.";
+      case "mic-blocked":
+        return "Your microphone is blocked or muted. Allow it from the address bar (and your system's mic switch), then reload this page. Your answers are saved. Every few seconds it stays off counts as another warning.";
       default:
         return "Suspicious activity was detected. Please follow the test rules.";
     }
