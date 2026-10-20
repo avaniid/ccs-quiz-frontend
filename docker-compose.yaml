@@ -17,6 +17,9 @@ services:
       FRONTEND_REDIRECT_URL: "${FRONTEND_REDIRECT_URL:-https://quiz.ccstiet.com/login-redirect}"
       FRONTEND_URL: "${FRONTEND_URL:-https://quiz.ccstiet.com}"
       TEST_DURATION: "${TEST_DURATION:-80}"
+      # Only these Google accounts may sign in. Registrants used both their
+      # @thapar.edu and personal Gmail accounts, so both are allowed by default.
+      ALLOWED_EMAIL_DOMAINS: "${ALLOWED_EMAIL_DOMAINS:-thapar.edu,gmail.com}"
       ADMIN_USER1: "${ADMIN_USER1:?set ADMIN_USER1 in .env}"
       ADMIN_PASS1: "${ADMIN_PASS1:?set ADMIN_PASS1 in .env}"
     ports:

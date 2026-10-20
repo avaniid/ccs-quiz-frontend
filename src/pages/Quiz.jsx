@@ -208,6 +208,26 @@ export default function Quiz() {
   useTabSwitchGuard(handleViolation, active);
   useFullscreenGuard(handleViolation, active);
 
+  // The fullscreen guard only reacts to LEAVING fullscreen. A candidate who
+  // was never in it (fullscreen cannot be re-entered without a click, so every
+  // reload lands in a normal window) could sit the whole test windowed, with
+  // notes beside it, and never be flagged. So while the paper is up and the
+  // page is not fullscreen, the questions are covered until they click back in.
+  // Skipped where fullscreen is unsupported, so nobody can get stuck behind it.
+  const [isFullscreen, setIsFullscreen] = useState(
+    () => typeof document !== "undefined" && Boolean(document.fullscreenElement)
+  );
+  useEffect(() => {
+    const sync = () => setIsFullscreen(Boolean(document.fullscreenElement));
+    document.addEventListener("fullscreenchange", sync);
+    return () => document.removeEventListener("fullscreenchange", sync);
+  }, []);
+  const needsFullscreen =
+    active &&
+    typeof document !== "undefined" &&
+    document.fullscreenEnabled &&
+    !isFullscreen;
+
   if (submitPhase !== "idle") {
     const failed = submitPhase === "failed";
     return (
@@ -581,6 +601,28 @@ export default function Quiz() {
         secondsLeft={enrollSecondsLeft}
         totalSeconds={ENROLL_SECONDS}
       />
+
+      {/* Covers the paper whenever it is not fullscreen (see needsFullscreen). */}
+      {needsFullscreen && !modalVisible && (
+        <div className="fixed inset-0 z-40 flex items-center justify-center bg-[var(--bg,#fff)] p-6">
+          <div className="card max-w-md w-full p-8 text-center shadow-xl">
+            <h2 className="font-display text-xl font-bold mb-2 text-[var(--ink)]">
+              Fullscreen required
+            </h2>
+            <p className="text-gray-500 text-sm mb-6">
+              The test must stay in fullscreen. Your timer is still running and
+              your answers are saved.
+            </p>
+            <button
+              type="button"
+              onClick={() => document.documentElement.requestFullscreen?.().catch(() => {})}
+              className="btn-primary cursor-pointer"
+            >
+              Return to fullscreen
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Warning Modal */}
       <WarningModal

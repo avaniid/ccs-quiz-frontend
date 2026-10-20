@@ -2,7 +2,6 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   verifySession,
-  isThaparEmail,
   logout,
   getGoogleLoginUrl,
 } from "../services/api";
@@ -53,7 +52,11 @@ export default function Instructions() {
     };
   }, []);
 
-  const isAuthorized = user && isThaparEmail(user.email);
+  // Any signed-in Google account may continue: the quiz is open to every
+  // registrant, not only @thapar.edu. Which accounts may sign in at all is
+  // decided by the backend (ALLOWED_EMAIL_DOMAINS), and an account without an
+  // assigned paper is stopped with "no quiz assigned" on the next page.
+  const isAuthorized = Boolean(user);
 
   const handleSignIn = () => {
     window.location.href = getGoogleLoginUrl();
@@ -110,7 +113,7 @@ export default function Instructions() {
                   </span>
                   <div>
                     <p className="text-xs font-semibold uppercase tracking-wider text-green-700">
-                      Verified Thapar ID
+                      Signed in
                     </p>
                     <p className="text-sm font-medium text-gray-800">
                       {user.email} {user.name ? `(${user.name})` : ""}
@@ -133,10 +136,10 @@ export default function Instructions() {
                   </span>
                   <div>
                     <p className="text-sm font-semibold text-amber-900">
-                      Thapar Email Required
+                      Sign In Required
                     </p>
                     <p className="text-xs text-amber-800 mt-0.5">
-                      You must sign in with your <span className="font-semibold">@thapar.edu</span> ID to unlock and take the test.
+                      Sign in with the <span className="font-semibold">same Google account you registered with</span> to unlock the test.
                     </p>
                   </div>
                 </div>
@@ -145,7 +148,7 @@ export default function Instructions() {
                   onClick={handleSignIn}
                   className="bg-[#3A94C2] hover:bg-[#317da4] text-white text-xs sm:text-sm font-medium px-5 py-2.5 rounded-full cursor-pointer transition-all shrink-0 shadow-xs"
                 >
-                  Sign In with Thapar ID
+                  Sign In with Google
                 </button>
               </div>
             )}
@@ -196,7 +199,7 @@ export default function Instructions() {
               </>
             ) : (
               <div className="text-xs sm:text-sm text-gray-500 font-normal">
-                Please sign in with your Thapar ID above to proceed with the test.
+                Please sign in above with the Google account you registered with to proceed.
               </div>
             )}
           </div>

@@ -75,7 +75,7 @@ export default function Home() {
           
           {/* TINKER: Subtitle text size (text-xs, text-sm, text-base) */}
           <p className="text-gray-500 text-xs sm:text-sm font-normal">
-            Use thapar id
+            Use the Google account you registered with
           </p>
         </div>
       </main>
