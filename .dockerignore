@@ -1,0 +1,13 @@
+# Keep the frontend build context small and free of secrets. Without this,
+# `COPY . .` would send local node_modules (Windows binaries) and the backend,
+# including backend/.env with real credentials, into the build.
+node_modules
+dist
+backend
+.git
+.github
+.vercel
+.env
+.env.*
+*.pdf
+*.log

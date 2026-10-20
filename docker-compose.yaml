@@ -1,0 +1,34 @@
+services:
+  api:
+    # Must match the tag .github/workflows/build.yaml pushes (note the -backend
+    # suffix), or `docker compose up --pull always` pulls an image that does
+    # not exist.
+    image: ghcr.io/avaniid/ccs-quiz-frontend-backend:latest
+    restart: unless-stopped
+    environment:
+      GIN_MODE: "${GIN_MODE:-release}"
+      MONGOURI: "${MONGOURI:?set MONGOURI in .env}"
+      MONGO_DB: "${MONGO_DB:?set MONGO_DB in .env}"
+      SESSION_SECRET: "${SESSION_SECRET:?set SESSION_SECRET in .env}"
+      JWT_SECRET: "${JWT_SECRET:?set JWT_SECRET in .env}"
+      GOOGLE_CLIENT_ID: "${GOOGLE_CLIENT_ID:?set GOOGLE_CLIENT_ID in .env}"
+      GOOGLE_CLIENT_SECRET: "${GOOGLE_CLIENT_SECRET:?set GOOGLE_CLIENT_SECRET in .env}"
+      CLIENT_CALLBACK_URL: "${CLIENT_CALLBACK_URL:-https://api-quiz.ccstiet.com/google_callback}"
+      FRONTEND_REDIRECT_URL: "${FRONTEND_REDIRECT_URL:-https://quiz.ccstiet.com/login-redirect}"
+      FRONTEND_URL: "${FRONTEND_URL:-https://quiz.ccstiet.com}"
+      TEST_DURATION: "${TEST_DURATION:-80}"
+      ADMIN_USER1: "${ADMIN_USER1:?set ADMIN_USER1 in .env}"
+      ADMIN_PASS1: "${ADMIN_PASS1:?set ADMIN_PASS1 in .env}"
+    ports:
+      - "${API_PORT:-2117}:2117"
+
+  web:
+    build:
+      context: .
+      args:
+        VITE_API_URL: ${VITE_API_URL:?set VITE_API_URL in .env, the public URL of the API}
+    restart: unless-stopped
+    depends_on:
+      - api
+    ports:
+      - "${WEB_PORT:-5173}:80"
