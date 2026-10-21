@@ -56,7 +56,10 @@
       <ol class="muted small">
         <li>The sheet needs an <code>email</code> column. It must be the exact Google account the candidate will sign in with.</li>
         <li>Add a <code>shift</code> column (1, 2, 3...) to choose shifts yourself, <b>or</b> leave it out and set
-          "candidates per shift" below to fill shifts in file order.</li>
+          "number of shifts" below to split the sheet evenly in file order.</li>
+        <li>Keep a spare shift (e.g. shift 3) out of the import for re-attempts: after the main shifts end,
+          <b>Move Absentees to Shift</b> on the home page sends everyone who never opened their paper (and anyone you
+          <b>Reset</b>) there with that shift's questions.</li>
         <li>Optional <code>name</code> and <code>roll</code> columns show up on the results page.</li>
         <li>Add the quiz questions first (tagged with their shift). Set each shift's timing before the exam.</li>
         <li>Always <b>Preview</b> first. Importing again is safe: papers are replaced, not duplicated,
@@ -75,9 +78,14 @@
             <input type="number" id="qps" name="questions_per_set" min="1" value="10" required>
           </div>
           <div>
-            <label for="perShift">Candidates per shift</label>
-            <input type="number" id="perShift" name="per_shift" min="1" value="50">
-            <div class="muted small">only used when the sheet has no shift column</div>
+            <label for="numShifts">Number of shifts</label>
+            <input type="number" id="numShifts" name="shifts" min="1" value="2">
+            <div class="muted small">splits evenly; only used when the sheet has no shift column</div>
+          </div>
+          <div>
+            <label for="perShift">or candidates per shift</label>
+            <input type="number" id="perShift" name="per_shift" min="1" placeholder="-">
+            <div class="muted small">used only if number of shifts is empty</div>
           </div>
           <div>
             <label for="startShift">First shift number</label>
@@ -113,7 +121,7 @@ const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({'&':'&amp;','<':
 let previewedKey = null;
 const formKey = () => {
   const f = fileInput.files[0];
-  return f ? [f.name, f.size, f.lastModified, form.qps.value, form.perShift.value, form.startShift.value].join('|') : '';
+  return f ? [f.name, f.size, f.lastModified, form.qps.value, form.numShifts.value, form.perShift.value, form.startShift.value].join('|') : '';
 };
 form.addEventListener('input', () => { importBtn.disabled = formKey() !== previewedKey; });
 

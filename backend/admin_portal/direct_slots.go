@@ -6,6 +6,7 @@ import (
 	"sort"
 	"time"
 
+	login "ccs.quizportal/Login"
 	models "ccs.quizportal/Models"
 	quiz "ccs.quizportal/Quiz"
 	"ccs.quizportal/db"
@@ -49,6 +50,8 @@ func ResetAttempt(c *gin.Context) {
 		return
 	}
 
+	req.Email = login.NormalizeEmail(req.Email)
+
 	var user models.AuthUser
 	if err := db.AUTH.Coll.FindOne(
 		db.AUTH.Context, bson.M{"userEmail": req.Email},
@@ -58,6 +61,36 @@ func ResetAttempt(c *gin.Context) {
 	}
 
 	filter := bson.M{"userID": user.UserId}
+
+	// Keep a copy of what is about to be cleared. In a real exam a reset is
+	// for a candidate whose attempt broke, and the broken attempt (answers,
+	// warnings, snapshot) must stay on record. No copy, no reset.
+	archive := bson.M{"userID": user.UserId, "email": req.Email, "reset_at": time.Now()}
+	for name, coll := range map[string]db.Collection{
+		"updates": db.Updates, "track": db.Quiz_Track, "responses": db.Quiz_Responses,
+	} {
+		var doc bson.M
+		err := coll.Coll.FindOne(coll.Context, filter).Decode(&doc)
+		if err != nil && !errors.Is(err, mongo.ErrNoDocuments) {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "could not read the attempt to archive it"})
+			return
+		}
+		if doc != nil {
+			delete(doc, "_id")
+			archive[name] = doc
+		}
+	}
+	var paper struct {
+		Shift int `bson:"shift"`
+	}
+	if db.User_Questions.Coll.FindOne(db.User_Questions.Context, filter,
+		options.FindOne().SetProjection(bson.M{"shift": 1})).Decode(&paper) == nil {
+		archive["shift"] = paper.Shift
+	}
+	if _, err := db.Attempt_Archive.Coll.InsertOne(db.Attempt_Archive.Context, archive); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "could not archive the attempt, nothing was cleared"})
+		return
+	}
 	// Answers, marks/flags/snapshot, and the started/submitted flags. The
 	// assigned paper is kept, so the candidate can simply retake it.
 	r1, err1 := db.Quiz_Responses.Coll.DeleteOne(db.Quiz_Responses.Context, filter)
@@ -69,7 +102,7 @@ func ResetAttempt(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{
-		"message":   "attempt cleared, this account can take the quiz again",
+		"message":   "attempt archived and cleared, this account can take the quiz again",
 		"email":     req.Email,
 		"responses": r1.DeletedCount,
 		"track":     r2.DeletedCount,

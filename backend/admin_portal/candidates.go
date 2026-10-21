@@ -111,7 +111,7 @@ func appendIssue(list []importIssue, issue importIssue) []importIssue {
 
 // parseCandidates reads the sheet and resolves each row's shift. Rows that
 // cannot be used are reported, not fatal.
-func parseCandidates(r io.Reader, perShift, startShift int, res *importResult) ([]candidateRow, error) {
+func parseCandidates(r io.Reader, perShift, numShifts, startShift int, res *importResult) ([]candidateRow, error) {
 	cr := csv.NewReader(r)
 	cr.FieldsPerRecord = -1 // tolerate ragged rows from spreadsheet exports
 	cr.LazyQuotes = true
@@ -132,8 +132,8 @@ func parseCandidates(r io.Reader, perShift, startShift int, res *importResult) (
 	nameCol := headerIndex(header, "name", "full name", "candidate name")
 	rollCol := headerIndex(header, "roll", "roll number", "roll no", "roll no.", "rollno")
 
-	if shiftCol < 0 && perShift < 1 {
-		return nil, errors.New(`the sheet has no "shift" column; set "candidates per shift" to fill shifts automatically`)
+	if shiftCol < 0 && perShift < 1 && numShifts < 1 {
+		return nil, errors.New(`the sheet has no "shift" column; set "number of shifts" or "candidates per shift" to fill shifts automatically`)
 	}
 
 	var out []candidateRow
@@ -193,7 +193,11 @@ func parseCandidates(r io.Reader, perShift, startShift int, res *importResult) (
 		})
 	}
 
-	// No shift column: fill shifts in file order, perShift at a time.
+	// No shift column: fill shifts in file order, perShift at a time. A number
+	// of shifts splits the valid rows evenly (568 over 2 is 284 each).
+	if shiftCol < 0 && numShifts > 0 && len(out) > 0 {
+		perShift = (len(out) + numShifts - 1) / numShifts
+	}
 	if shiftCol < 0 {
 		for i := range out {
 			out[i].shift = startShift + i/perShift
@@ -207,7 +211,8 @@ func parseCandidates(r io.Reader, perShift, startShift int, res *importResult) (
 //
 //	file               the CSV
 //	questions_per_set  questions on each paper
-//	per_shift          candidates per shift, used only without a shift column
+//	shifts             number of shifts to split evenly into, used only without a shift column
+//	per_shift          candidates per shift, used only without a shift column and without shifts
 //	start_shift        first shift number for automatic filling (default 1)
 //	dry_run            "true" to validate and preview without writing anything
 //
@@ -222,6 +227,7 @@ func ImportCandidates(c *gin.Context) {
 		return
 	}
 	perShift, _ := strconv.Atoi(c.PostForm("per_shift"))
+	numShifts, _ := strconv.Atoi(c.PostForm("shifts"))
 	startShift, _ := strconv.Atoi(c.PostForm("start_shift"))
 	if startShift < 1 {
 		startShift = 1
@@ -246,7 +252,7 @@ func ImportCandidates(c *gin.Context) {
 		SmallShifts:     map[int]int{},
 		QuestionsPerSet: perSet,
 	}
-	rows, err := parseCandidates(f, perShift, startShift, &res)
+	rows, err := parseCandidates(f, perShift, numShifts, startShift, &res)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return

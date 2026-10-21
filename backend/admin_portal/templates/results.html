@@ -97,6 +97,7 @@
           <option value="no_paper">No paper</option>
         </select>
         <label class="small"><input type="checkbox" id="fSus"> Needs review only</label>
+        <label class="small"><input type="checkbox" id="fRe"> Re-attempts only</label>
         <span class="muted small" id="count"></span>
       </div>
       <div class="tablewrap">
@@ -145,6 +146,9 @@ function needsReview(r) {
     r.time_taken_sec < data.duration_minutes * 60 / 5;
   return !r.has_snapshot || r.flags >= 10 || r.submit_kind === 'warnings' || fast;
 }
+// Moved off their CSV shift (absentee, or reset and moved) or had an attempt reset.
+const isReattempt = (r) =>
+  (r.imported_shift > 0 && r.shift > 0 && r.shift !== r.imported_shift) || r.prior_attempts > 0;
 function topFlags(fc) {
   return Object.entries(fc || {}).sort((a, b) => b[1] - a[1]).slice(0, 3)
     .map(([t, n]) => `${t}&nbsp;×${n}`).join(', ');
@@ -153,7 +157,8 @@ function topFlags(fc) {
 const COLS = [
   { k: 'idx', t: '#', num: true, v: (r, i) => i + 1, nosort: true },
   { k: 'email', t: 'Candidate', v: (r) => `${esc(r.email) || '<span class="muted">(unknown)</span>'}${r.name || r.roll ? `<div class="sub">${esc(r.name)}${r.name && r.roll ? ' · ' : ''}${esc(r.roll)}</div>` : ''}` },
-  { k: 'shift', t: 'Shift', num: true, v: (r) => r.shift || '-' },
+  { k: 'shift', t: 'Shift', num: true, v: (r) => (r.shift || '-') + (isReattempt(r)
+      ? `<div class="sub warn" title="Re-attempt">re-attempt${r.imported_shift && r.imported_shift !== r.shift ? ` (was ${r.imported_shift})` : ''}${r.prior_attempts ? ` · ${r.prior_attempts} reset` : ''}</div>` : '') },
   { k: 'status', t: 'Status', v: (r) => `<span class="pill s-${r.status}">${STATUS_LABEL[r.status] || r.status}</span>${needsReview(r) ? ' <span class="warn" title="Needs review">⚑</span>' : ''}` },
   { k: 'started_at', t: 'Started', v: (r) => fmtTime(r.started_at) },
   { k: 'submitted_at', t: 'Submitted', v: (r) => fmtTime(r.submitted_at) },
@@ -224,11 +229,13 @@ function renderTable() {
   const fShift = document.getElementById('fShift').value;
   const fStatus = document.getElementById('fStatus').value;
   const fSus = document.getElementById('fSus').checked;
+  const fRe = document.getElementById('fRe').checked;
   let rows = data.rows.filter((r) =>
     (!q || [r.email, r.name, r.roll].some((x) => (x || '').toLowerCase().includes(q))) &&
     (!fShift || String(r.shift) === fShift) &&
     (!fStatus || r.status === fStatus) &&
-    (!fSus || needsReview(r)));
+    (!fSus || needsReview(r)) &&
+    (!fRe || isReattempt(r)));
   const key = sortKey;
   rows.sort((a, b) => {
     let x = a[key], y = b[key];
@@ -268,7 +275,7 @@ document.getElementById('headRow').addEventListener('click', (e) => {
   if (sortKey === col.k) sortDir = -sortDir; else { sortKey = col.k; sortDir = col.num ? -1 : 1; }
   renderHead(); renderTable();
 });
-['q', 'fShift', 'fStatus', 'fSus'].forEach((id) => document.getElementById(id).addEventListener('input', renderTable));
+['q', 'fShift', 'fStatus', 'fSus', 'fRe'].forEach((id) => document.getElementById(id).addEventListener('input', renderTable));
 document.getElementById('refresh').onclick = load;
 
 let timer = null;

@@ -41,6 +41,8 @@ type resultRow struct {
 	Name           string         `json:"name"`
 	Roll           string         `json:"roll"`
 	Shift          int            `json:"shift"`
+	ImportedShift  int            `json:"imported_shift"` // shift from the CSV; differs from Shift once moved for a re-attempt
+	PriorAttempts  int            `json:"prior_attempts"` // attempts an admin reset (kept in attempt_archive)
 	ShiftStart     *time.Time     `json:"shift_start"`
 	Status         string         `json:"status"` // no_paper | not_started | in_progress | submitted | not_submitted
 	StartedAt      *time.Time     `json:"started_at"`
@@ -84,7 +86,7 @@ func buildResults() ([]*resultRow, error) {
 			return errSkip
 		}
 		r := get(d.UserID)
-		r.Email, r.Name, r.Roll, r.Shift = d.Email, d.Name, d.Roll, d.Shift
+		r.Email, r.Name, r.Roll, r.Shift, r.ImportedShift = d.Email, d.Name, d.Roll, d.Shift, d.Shift
 		return nil
 	})
 
@@ -202,6 +204,18 @@ func buildResults() ([]*resultRow, error) {
 				r.Wrong++
 			}
 		}
+		return nil
+	})
+
+	// Resets: how many earlier attempts each candidate had cleared.
+	loadByUser(db.Attempt_Archive, bson.M{"userID": 1}, func(cur *mongo.Cursor) error {
+		var d struct {
+			UserID models.UID `bson:"userID"`
+		}
+		if err := cur.Decode(&d); err != nil || d.UserID == nil {
+			return errSkip
+		}
+		get(d.UserID).PriorAttempts++
 		return nil
 	})
 
@@ -347,7 +361,7 @@ func DownloadResultsCSV(c *gin.Context) {
 		"Email", "Name", "Roll", "Shift", "Shift start (IST)", "Status",
 		"Started (IST)", "Submitted (IST)", "Time taken (mm:ss)", "Submit type",
 		"Questions", "Answered", "Correct", "Wrong", "Unanswered", "Marks",
-		"Warnings", "Strikes", "Snapshot",
+		"Warnings", "Strikes", "Snapshot", "Imported shift", "Re-attempt", "Earlier attempts (reset)",
 	}
 	header = append(header, flagTypes...)
 	w.Write(header)
@@ -370,6 +384,7 @@ func DownloadResultsCSV(c *gin.Context) {
 			strconv.Itoa(r.TotalQuestions), strconv.Itoa(r.Answered), strconv.Itoa(r.Correct),
 			strconv.Itoa(r.Wrong), strconv.Itoa(r.Unanswered), marks,
 			strconv.Itoa(r.Flags), strconv.Itoa(r.Strikes), snap,
+			importedShift(r), yesNo(isReattempt(r)), strconv.Itoa(r.PriorAttempts),
 		}
 		for _, t := range flagTypes {
 			rec = append(rec, strconv.Itoa(r.FlagCounts[t]))
@@ -410,4 +425,24 @@ func GetSnapshot(c *gin.Context) {
 	}
 	c.Header("Cache-Control", "private, max-age=300")
 	c.Data(http.StatusOK, mime, img)
+}
+
+// isReattempt: moved off the shift the CSV gave them (absentee moved, or reset
+// and moved), or had an earlier attempt reset.
+func isReattempt(r *resultRow) bool {
+	return (r.ImportedShift > 0 && r.Shift > 0 && r.Shift != r.ImportedShift) || r.PriorAttempts > 0
+}
+
+func importedShift(r *resultRow) string {
+	if r.ImportedShift == 0 {
+		return ""
+	}
+	return strconv.Itoa(r.ImportedShift)
+}
+
+func yesNo(b bool) string {
+	if b {
+		return "yes"
+	}
+	return "no"
 }

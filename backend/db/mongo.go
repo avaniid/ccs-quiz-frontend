@@ -36,6 +36,9 @@ var (
 	// One row per candidate imported from the registration CSV: their email,
 	// name, roll number and shift, for the results page.
 	Candidates Collection
+	// A copy of every attempt an admin reset, taken before it is cleared, so a
+	// re-attempt never erases the record of the first one.
+	Attempt_Archive Collection
 )
 
 func Init() error {
@@ -81,6 +84,7 @@ func Init() error {
 	Shifts = Collection{DATABASE.Collection("shift_data"), ctx}
 	Slot_Requests = Collection{DATABASE.Collection("slot_requests"), ctx}
 	Candidates = Collection{DATABASE.Collection("candidates"), ctx}
+	Attempt_Archive = Collection{DATABASE.Collection("attempt_archive"), ctx}
 
 	ensureIndexes(ctx)
 	return nil
