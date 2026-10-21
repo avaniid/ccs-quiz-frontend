@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Question Bank</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    :root{--bg:#0f1220;--card:#171a2b;--muted:#9aa4bf;--brand:#7f9cf5;--brand-2:#22d3ee;--text:#e7eaf6;--ok:#4ade80;--warn:#facc15;--bad:#f87171;--line:rgba(127,156,245,.2)}
+    *{box-sizing:border-box}
+    body{margin:0;background:radial-gradient(1200px 600px at 10% -10%,rgba(127,156,245,.15),transparent 60%),var(--bg);color:var(--text);font-family:Inter,system-ui,sans-serif}
+    .nav{display:flex;align-items:center;justify-content:space-between;padding:16px 22px;position:sticky;top:0;z-index:10;background:rgba(15,18,32,.85);backdrop-filter:blur(10px);border-bottom:1px solid var(--line)}
+    .brand{display:flex;align-items:center;gap:12px;font-weight:800}
+    .logo{width:38px;height:38px;object-fit:contain;border-radius:8px}
+    .nav a{color:var(--text);text-decoration:none;font-weight:600;padding:8px 12px;border-radius:10px}
+    .nav a:hover{background:rgba(127,156,245,.12)}
+    .wrap{max-width:980px;margin:28px auto;padding:0 18px 60px}
+    .card{background:rgba(23,26,43,.9);border:1px solid var(--line);border-radius:16px;padding:22px;margin-bottom:18px}
+    h1{margin:0 0 6px;font-size:26px} h2{margin:0 0 12px;font-size:18px}
+    .muted{color:var(--muted)} .small{font-size:13px}
+    .ok{color:var(--ok)} .warn{color:var(--warn)} .bad{color:var(--bad)}
+    .btn{display:inline-block;padding:9px 14px;border-radius:10px;font-weight:700;border:0;cursor:pointer;background:linear-gradient(135deg,var(--brand),var(--brand-2));color:#0b1022;text-decoration:none}
+    .btn.danger{background:#7f1d1d;color:#fee2e2;padding:6px 12px}
+    .btn:disabled{opacity:.5;cursor:not-allowed}
+    .tiles{display:flex;gap:12px;flex-wrap:wrap;margin-top:12px}
+    .tile{border:1px solid var(--line);border-radius:12px;padding:10px 14px;min-width:110px}
+    .tile b{display:block;font-size:22px}
+    .filters{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:14px}
+    select,input[type=search]{background:#0f1220;color:var(--text);border:1px solid var(--line);border-radius:10px;padding:8px 10px}
+    .q{border:1px solid var(--line);border-radius:12px;padding:14px;margin-bottom:12px}
+    .qhead{display:flex;justify-content:space-between;gap:12px;align-items:flex-start}
+    .qtext{font-weight:600;white-space:pre-wrap;word-break:break-word}
+    .tag{display:inline-block;font-size:12px;font-weight:700;padding:2px 8px;border-radius:999px;background:rgba(127,156,245,.15);margin-right:6px}
+    ol{margin:10px 0 0;padding-left:22px} li{margin:3px 0;word-break:break-word}
+    li.correct{color:var(--ok);font-weight:700}
+    .qimg{max-width:240px;max-height:160px;border-radius:8px;margin-top:10px;display:block}
+    .meta{margin-top:8px}
+  </style>
+</head>
+<body>
+  <header class="nav">
+    <div class="brand"><img src="/static/images/ccs-logo.png" alt="" class="logo"> <span>CCS Admin</span></div>
+    <nav>
+      <a href="/admin/home">Home</a>
+      <a href="/admin/questions">Questions</a>
+      <a href="/admin/import">Import</a>
+      <a href="/admin/results">Results</a>
+      <a href="/admin/logout">Logout</a>
+    </nav>
+  </header>
+
+  <main class="wrap">
+    <section class="card">
+      <h1>Question bank</h1>
+      <p class="muted">Every quiz question, grouped by shift, with the correct option in green.
+        Deleting removes the question and its answer. Papers already handed out keep their own copy:
+        <b>import again</b> after deleting to give unopened papers fresh questions.</p>
+      <div class="tiles" id="tiles"></div>
+      <div style="margin-top:14px"><a class="btn" href="/admin/add-quiz-question">+ Add question</a></div>
+    </section>
+
+    <section class="card">
+      <div class="filters">
+        <input type="search" id="q" placeholder="Search question text">
+        <select id="fShift"><option value="">All shifts</option></select>
+        <span class="muted small" id="count"></span>
+      </div>
+      <div id="list"><p class="muted">Loading...</p></div>
+    </section>
+  </main>
+
+<script>
+const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+let questions = [];
+
+async function load() {
+  try {
+    const r = await fetch('/admin/api/questions');
+    const out = await r.json();
+    if (!r.ok) throw new Error(out.error || r.status);
+    questions = out.questions || [];
+    render();
+  } catch (e) {
+    document.getElementById('list').innerHTML = `<p class="bad">Could not load questions: ${esc(e.message)}</p>`;
+  }
+}
+
+function render() {
+  const shifts = [...new Set(questions.map((q) => q.shift))].sort((a, b) => a - b);
+  document.getElementById('tiles').innerHTML =
+    `<div class="tile"><span class="muted small">Total</span><b>${questions.length}</b></div>` +
+    shifts.map((s) => `<div class="tile"><span class="muted small">Shift ${s}</span><b>${questions.filter((q) => q.shift === s).length}</b></div>`).join('');
+
+  const sel = document.getElementById('fShift');
+  const cur = sel.value;
+  sel.innerHTML = '<option value="">All shifts</option>' + shifts.map((s) => `<option value="${s}">Shift ${s}</option>`).join('');
+  sel.value = cur;
+
+  const text = document.getElementById('q').value.trim().toLowerCase();
+  const rows = questions.filter((q) =>
+    (!sel.value || String(q.shift) === sel.value) &&
+    (!text || q.question.toLowerCase().includes(text) || q.options.some((o) => o.toLowerCase().includes(text))));
+  document.getElementById('count').textContent = `${rows.length} of ${questions.length}`;
+
+  document.getElementById('list').innerHTML = rows.map((q) => `
+    <div class="q">
+      <div class="qhead">
+        <div>
+          <span class="tag">Shift ${q.shift}</span>
+          <div class="qtext" style="margin-top:6px">${esc(q.question)}</div>
+        </div>
+        <button class="btn danger" data-del="${esc(q.id)}">Delete</button>
+      </div>
+      ${q.image ? `<img class="qimg" src="${esc(q.image)}" alt="" loading="lazy">` : ''}
+      <ol>${q.options.map((o, i) => `<li class="${i === q.correct ? 'correct' : ''}">${esc(o)}${i === q.correct ? ' ✓' : ''}</li>`).join('')}</ol>
+      <div class="meta small muted">
+        ${q.correct < 0 ? '<span class="bad">no correct answer stored</span> · ' : ''}
+        ${q.papers ? `in ${q.papers} paper${q.papers === 1 ? '' : 's'}${q.opened_papers ? ` · <span class="warn">${q.opened_papers} opened</span>` : ''}` : 'not in any paper yet'}
+      </div>
+    </div>`).join('') || '<p class="muted">No questions.</p>';
+}
+
+async function del(id, force) {
+  const r = await fetch('/admin/api/delete-question', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ id, force }),
+  });
+  return { status: r.status, out: await r.json().catch(() => ({})) };
+}
+
+document.getElementById('list').addEventListener('click', async (e) => {
+  const btn = e.target.closest('[data-del]');
+  if (!btn) return;
+  const id = btn.getAttribute('data-del');
+  const q = questions.find((x) => x.id === id);
+  const preview = q ? q.question.slice(0, 120) : '';
+  if (!confirm(`Delete this question and its answer?\n\n"${preview}"`)) return;
+  btn.disabled = true;
+  try {
+    let { status, out } = await del(id, false);
+    if (status === 409) {
+      const ok = confirm(`${out.opened_papers} candidate(s) have already opened a paper with this question.\n` +
+        `If you delete it, nobody can score on it.\n\nDelete anyway?`);
+      if (!ok) { btn.disabled = false; return; }
+      ({ status, out } = await del(id, true));
+    }
+    if (status !== 200) throw new Error(out.error || status);
+    questions = questions.filter((x) => x.id !== id);
+    render();
+    if (out.papers_with_it) {
+      alert(`Deleted. ${out.papers_with_it} paper(s) still contain it: import again to replace unopened papers.`);
+    }
+  } catch (err) {
+    alert('Delete failed: ' + err.message);
+    btn.disabled = false;
+  }
+});
+
+['q', 'fShift'].forEach((id) => document.getElementById(id).addEventListener('input', render));
+load();
+</script>
+</body>
+</html>
