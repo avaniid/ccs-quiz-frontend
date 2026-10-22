@@ -27,7 +27,7 @@ var (
 	ErrAlreadySubmitted = errors.New("you have already submitted this quiz")
 	ErrNoPaperAssigned  = errors.New("no quiz has been assigned to your account yet")
 	ErrQuizNotStarted   = errors.New("quiz not started for your shift yet")
-	ErrShiftOver        = errors.New("your shift has already ended")
+	ErrShiftOver        = errors.New("entry for your shift has closed")
 	ErrTimeUp           = errors.New("your time for this quiz is over")
 )
 
@@ -48,6 +48,20 @@ func TestDuration() time.Duration {
 		}
 	}
 	return time.Duration(minutes) * time.Minute
+}
+
+// EntryWindow is how long after a shift starts its candidates may still open
+// the paper (ENTRY_WINDOW, in minutes). Everyone who gets in still has the
+// full TestDuration from their own start, so a short window ends the shift
+// early without cutting anyone's time. Unset, it equals TestDuration, which
+// was the only behaviour before it existed.
+func EntryWindow() time.Duration {
+	if v := os.Getenv("ENTRY_WINDOW"); v != "" {
+		if n, err := strconv.Atoi(v); err == nil && n > 0 {
+			return time.Duration(n) * time.Minute
+		}
+	}
+	return TestDuration()
 }
 
 // shiftCacheTTL bounds how stale a shift timing can be. Admins can re-time a
@@ -192,7 +206,7 @@ func GetQuizQuestions(c *gin.Context) (*QuizPaper, error) {
 		// Entry closes once the shift's own window is over; someone from shift 1
 		// must not be able to open the paper during shift 3. A candidate who had
 		// already started is handled by their personal deadline below.
-		if !started && now.After(shiftInfo.Start.Add(duration)) {
+		if !started && now.After(shiftInfo.Start.Add(EntryWindow())) {
 			return nil, ErrShiftOver
 		}
 	}

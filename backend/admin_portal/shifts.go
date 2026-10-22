@@ -278,7 +278,7 @@ func ReassignShiftAndQuestions(c *gin.Context) {
 	defer paperCur.Close(db.User_Questions.Context)
 
 	now := time.Now()
-	duration := quiz.TestDuration()
+	entry := quiz.EntryWindow()
 	var absentees []string
 	for paperCur.Next(db.User_Questions.Context) {
 		var doc struct {
@@ -293,8 +293,8 @@ func ReassignShiftAndQuestions(c *gin.Context) {
 			continue
 		}
 		s, ok := shifts[doc.Shift]
-		if !ok || now.Before(s.Start.Add(duration)) {
-			continue // their shift has not happened yet, or is still running
+		if !ok || now.Before(s.Start.Add(entry)) {
+			continue // their shift has not happened yet, or is still letting people in
 		}
 		absentees = append(absentees, id)
 	}

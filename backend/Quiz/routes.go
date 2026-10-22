@@ -101,5 +101,6 @@ func GetAppConfig(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{
 		"shifts":        shifts,
 		"test_duration": int(TestDuration().Minutes()),
+		"entry_window":  int(EntryWindow().Minutes()),
 	})
 }

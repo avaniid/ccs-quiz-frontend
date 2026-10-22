@@ -17,6 +17,9 @@ services:
       FRONTEND_REDIRECT_URL: "${FRONTEND_REDIRECT_URL:-https://quiz.ccstiet.com/login-redirect}"
       FRONTEND_URL: "${FRONTEND_URL:-https://quiz.ccstiet.com}"
       TEST_DURATION: "${TEST_DURATION:-80}"
+      # Minutes after a shift starts that candidates can still open the paper.
+      # Empty means the same as TEST_DURATION.
+      ENTRY_WINDOW: "${ENTRY_WINDOW:-}"
       # Only these Google accounts may sign in. Registrants used both their
       # @thapar.edu and personal Gmail accounts, so both are allowed by default.
       ALLOWED_EMAIL_DOMAINS: "${ALLOWED_EMAIL_DOMAINS:-thapar.edu,gmail.com}"
