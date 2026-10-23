@@ -139,7 +139,7 @@ function render(res, dry) {
     const small = res.small_shifts && res.small_shifts[s];
     const fb = (res.fallback_shifts || []).includes(s);
     const notes = [
-      fb ? '<span class="warn">no questions tagged for this shift: drawn from the whole bank</span>' : '',
+      fb ? '<span class="warn">no questions tagged for this shift: an even mix of the other shifts' questions</span>' : '',
       small ? `<span class="bad">only ${small} questions available (asked for ${res.questions_per_set})</span>` : '',
     ].filter(Boolean).join('<br>');
     return `<tr><td>Shift ${s}</td><td>${res.per_shift[s]}</td><td>${notes || '<span class="ok">ok</span>'}</td></tr>`;

@@ -35,6 +35,13 @@
     li.correct{color:var(--ok);font-weight:700}
     .qimg{max-width:240px;max-height:160px;border-radius:8px;margin-top:10px;display:block}
     .meta{margin-top:8px}
+    input[type=file]{background:#0f1220;color:var(--text);border:1px solid var(--line);border-radius:10px;padding:8px 10px}
+    .btn.secondary{background:transparent;color:var(--text);border:1px solid var(--line)}
+    table{width:100%;border-collapse:collapse;font-size:14px;margin-top:8px}
+    th,td{text-align:left;padding:6px 8px;border-bottom:1px solid var(--line);vertical-align:top}
+    th{color:var(--muted);font-weight:600}
+    details{margin-top:10px} summary{cursor:pointer;font-weight:600}
+    code{background:rgba(127,156,245,.12);padding:1px 6px;border-radius:6px}
   </style>
 </head>
 <body>
@@ -57,6 +64,22 @@
         <b>import again</b> after deleting to give unopened papers fresh questions.</p>
       <div class="tiles" id="tiles"></div>
       <div style="margin-top:14px"><a class="btn" href="/admin/add-quiz-question">+ Add question</a></div>
+    </section>
+
+    <section class="card">
+      <h2>Import questions from CSV</h2>
+      <p class="muted small">Columns: <code>shift</code>, <code>question</code>, <code>option_a</code>, <code>option_b</code>,
+        <code>option_c</code>, <code>option_d</code> (more option columns are fine, empty ones are skipped),
+        <code>correct</code> (A/B/C/D or 1/2/3/4), optional <code>image_url</code> (https link).
+        A question already in the bank, or repeated in the file, is skipped, so no question ends up in two shifts.
+        Leave the re-attempt shift (3) without questions: it gets an even mix of shifts 1 and 2.</p>
+      <div class="filters" style="margin-top:12px">
+        <input type="file" id="qFile" accept=".csv,text/csv">
+        <button class="btn secondary" id="qPreview" type="button">Preview (saves nothing)</button>
+        <button class="btn" id="qImport" type="button" disabled>Import</button>
+        <button class="btn secondary" id="qTemplate" type="button">Download template</button>
+      </div>
+      <div id="qResult"></div>
     </section>
 
     <section class="card">
@@ -159,6 +182,78 @@ document.getElementById('list').addEventListener('click', async (e) => {
 
 ['q', 'fShift'].forEach((id) => document.getElementById(id).addEventListener('input', render));
 load();
+
+// ---- CSV import ----
+const qFile = document.getElementById('qFile');
+const qPreview = document.getElementById('qPreview');
+const qImport = document.getElementById('qImport');
+const qResult = document.getElementById('qResult');
+let qPreviewed = null;
+const qKey = () => { const f = qFile.files[0]; return f ? [f.name, f.size, f.lastModified].join('|') : ''; };
+qFile.addEventListener('change', () => { qImport.disabled = qKey() !== qPreviewed; qResult.innerHTML = ''; });
+
+function issueTable(title, items, cls) {
+  if (!items || !items.length) return '';
+  return `<details${cls === 'bad' ? ' open' : ''}><summary class="${cls}">${title} (${items.length})</summary><table>
+    <tr><th>Row</th><th>Question</th><th>Reason</th></tr>
+    ${items.map((i) => `<tr><td>${i.row}</td><td>${esc(i.question)}</td><td>${esc(i.reason)}</td></tr>`).join('')}</table></details>`;
+}
+
+function renderImport(res, dry) {
+  const shifts = [...new Set([...Object.keys(res.per_shift || {}), ...Object.keys(res.bank_shift || {})])].map(Number).sort((a, b) => a - b);
+  const L = 'ABCDEFGH';
+  qResult.innerHTML = `
+    <h2 style="margin-top:16px">${dry ? 'Preview <span class="muted small">(nothing saved yet)</span>' : '<span class="ok">Imported</span>'}</h2>
+    <div class="tiles">
+      <div class="tile"><span class="muted small">Rows in file</span><b>${res.rows}</b></div>
+      <div class="tile"><span class="muted small">${dry ? 'Will be added' : 'Added'}</span><b class="ok">${res.valid}</b></div>
+      <div class="tile"><span class="muted small">Skipped</span><b class="${(res.invalid?.length || 0) + (res.duplicates?.length || 0) ? 'warn' : ''}">${(res.invalid?.length || 0) + (res.duplicates?.length || 0)}</b></div>
+    </div>
+    <table><tr><th>Shift</th><th>${dry ? 'Adding' : 'Added'}</th><th>In bank ${dry ? 'after import' : 'now'}</th></tr>
+      ${shifts.map((s) => `<tr><td>Shift ${s}</td><td>${res.per_shift?.[s] || 0}</td><td><b>${res.bank_shift?.[s] || 0}</b></td></tr>`).join('')}</table>
+    ${issueTable('Cannot be used', res.invalid, 'bad')}
+    ${issueTable('Duplicates skipped', res.duplicates, 'warn')}
+    ${res.sample?.length ? `<details ${dry ? 'open' : ''}><summary>First ${res.sample.length} questions as read (check the columns)</summary>
+      ${res.sample.map((q) => `<div class="q"><span class="tag">Shift ${q.shift}</span><div class="qtext" style="margin-top:6px">${esc(q.question)}</div>
+        <ol>${q.options.map((o, i) => `<li class="${i === q.correct ? 'correct' : ''}">${esc(o)}${i === q.correct ? ' ✓' : ''}</li>`).join('')}</ol></div>`).join('')}
+    </details>` : ''}`;
+}
+
+async function sendQuestions(dry) {
+  if (!qFile.files[0]) { alert('Choose a CSV file first.'); return; }
+  const data = new FormData();
+  data.set('file', qFile.files[0]);
+  data.set('dry_run', dry ? 'true' : 'false');
+  qPreview.disabled = qImport.disabled = true;
+  qResult.innerHTML = `<p class="muted">${dry ? 'Checking...' : 'Importing...'}</p>`;
+  try {
+    const r = await fetch('/admin/import-questions', { method: 'POST', body: data });
+    const out = await r.json().catch(() => ({ error: 'unexpected response (' + r.status + ')' }));
+    if (!r.ok) throw new Error(out.error || r.status);
+    renderImport(out, dry);
+    qPreviewed = dry && out.valid > 0 ? qKey() : null;
+    if (!dry) load();
+  } catch (e) {
+    qResult.innerHTML = `<p class="bad">Error: ${esc(e.message)}</p>`;
+    qPreviewed = null;
+  } finally {
+    qPreview.disabled = false;
+    qImport.disabled = qKey() !== qPreviewed;
+  }
+}
+qPreview.onclick = () => sendQuestions(true);
+qImport.onclick = () => { if (confirm('Add these questions to the bank?')) sendQuestions(false); };
+
+document.getElementById('qTemplate').onclick = () => {
+  const csv = '\ufeffshift,question,option_a,option_b,option_c,option_d,correct,image_url\n' +
+    '1,"What is 2 + 2?",3,4,5,6,B,\n' +
+    '2,"Which data structure is FIFO?",Stack,Queue,Tree,Graph,B,\n';
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv' }));
+  a.download = 'questions-template.csv';
+  a.click();
+  URL.revokeObjectURL(a.href);
+};
 </script>
 </body>
 </html>

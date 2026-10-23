@@ -110,6 +110,7 @@ func main() {
 		authorized_admin.GET("/questions", admin.ShowQuestionsPage)
 		authorized_admin.GET("/api/questions", admin.ListQuestions)
 		authorized_admin.POST("/api/delete-question", admin.DeleteQuestion)
+		authorized_admin.POST("/import-questions", admin.ImportQuestions)
 		authorized_admin.GET("/reg-responses", admin.ShowRegResponses)
 		authorized_admin.GET("/api/reg-responses", admin.GetRegResponsesData)
 		authorized_admin.POST("/remove-duplicate-registrations", admin.RemoveDuplicateRegistrations)

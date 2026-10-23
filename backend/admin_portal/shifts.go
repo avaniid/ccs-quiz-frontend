@@ -91,13 +91,57 @@ func personalize(set []models.Quiz_Questions) []models.Quiz_Questions {
 
 // pickSet draws k questions for a shift; every candidate in the shift gets the
 // same set (in their own order), so the paper is equally hard for all of them.
+// A shift with no questions of its own (the re-attempt shift) gets a mix drawn
+// evenly from the other shifts' questions.
 func pickSet(bank []models.Quiz_Questions, shift, k int) ([]models.Quiz_Questions, bool) {
 	pool, fallback := poolForShift(bank, shift)
+	if fallback {
+		return mixedSet(pool, k), true
+	}
 	shuffleQuestions(pool)
 	if k > len(pool) {
 		k = len(pool)
 	}
 	return pool[:k], fallback
+}
+
+// mixedSet takes k questions round-robin across the shifts they are tagged
+// with, so a mix of shifts 1 and 2 is half and half rather than whatever a
+// plain shuffle of the whole bank happens to give.
+func mixedSet(pool []models.Quiz_Questions, k int) []models.Quiz_Questions {
+	byShift := map[int][]models.Quiz_Questions{}
+	var order []int
+	for _, q := range pool {
+		if _, ok := byShift[q.Shift]; !ok {
+			order = append(order, q.Shift)
+		}
+		byShift[q.Shift] = append(byShift[q.Shift], q)
+	}
+	for _, s := range order {
+		shuffleQuestions(byShift[s])
+	}
+	// Random order, so which shift gives the extra question when k is odd is
+	// not always the same one.
+	rand.Shuffle(len(order), func(i, j int) { order[i], order[j] = order[j], order[i] })
+
+	out := make([]models.Quiz_Questions, 0, k)
+	for len(out) < k {
+		took := false
+		for _, s := range order {
+			if len(out) == k {
+				break
+			}
+			if g := byShift[s]; len(g) > 0 {
+				out = append(out, g[0])
+				byShift[s] = g[1:]
+				took = true
+			}
+		}
+		if !took {
+			break
+		}
+	}
+	return out
 }
 
 func AssignShiftsAndQuestions(c *gin.Context) {
@@ -331,7 +375,7 @@ func ReassignShiftAndQuestions(c *gin.Context) {
 		"shift":           req.Shift,
 	}
 	if fallback {
-		resp["warning"] = fmt.Sprintf("no questions are tagged for shift %d, so it drew from the whole bank", req.Shift)
+		resp["warning"] = fmt.Sprintf("no questions are tagged for shift %d, so it got an even mix of the other shifts' questions", req.Shift)
 	}
 	if _, ok := shifts[req.Shift]; !ok {
 		resp["warning_timing"] = fmt.Sprintf("shift %d has no timing yet - set it or these candidates cannot start", req.Shift)
