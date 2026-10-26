@@ -339,8 +339,9 @@ export default function Instructions() {
                 {error && <p className="text-red-600 text-xs sm:text-sm font-medium">{error}</p>}
               </>
             ) : (
-              <div className="text-xs sm:text-sm text-gray-500 font-normal">
+              <div className="text-xs sm:text-sm text-gray-600 font-normal">
                 Please sign in above with the Google account you registered with to proceed.
+                
               </div>
             )}
           </div>

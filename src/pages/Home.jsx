@@ -74,8 +74,8 @@ export default function Home() {
           </button>
           
           {/* TINKER: Subtitle text size (text-xs, text-sm, text-base) */}
-          <p className="text-gray-500 text-xs sm:text-sm font-normal">
-            Use the Google account you registered with
+          <p className="text-gray-600 text-xs sm:text-sm font-normal">
+            Make Sure to sign in with your Google Account that is registered with CCS to access the quiz portal and view your scheduled Quiz .
           </p>
         </div>
       </main>
