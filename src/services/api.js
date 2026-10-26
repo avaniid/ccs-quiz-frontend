@@ -97,6 +97,33 @@ export async function fetchQuizConfig() {
 }
 
 /**
+ * This candidate's shift and its entry window. Times are converted to this
+ * browser's clock using the server's own time, like fetchQuestions does, so a
+ * wrong local clock cannot open the start button early. `status` is
+ * "assigned" when the candidate has a paper; anything else means they do not.
+ */
+export async function fetchSlotStatus() {
+  const { data } = await api.get("/quiz/slot-status");
+  const receivedAt = Date.now();
+  const serverTime = Date.parse(data?.server_time ?? "");
+  const skew = Number.isFinite(serverTime) ? serverTime - receivedAt : 0;
+  const local = (value) => {
+    const ms = Date.parse(value ?? "");
+    return Number.isFinite(ms) ? ms - skew : null;
+  };
+  return {
+    status: data?.status ?? "none",
+    shift: data?.shift ?? null,
+    startMs: local(data?.start_time),
+    entryClosesMs: local(data?.entry_closes),
+    started: Boolean(data?.started),
+    submitted: Boolean(data?.submitted),
+    testMode: Boolean(data?.test_mode),
+    durationMinutes: Number(data?.test_duration) || null,
+  };
+}
+
+/**
  * The questions assigned to this candidate's shift, plus the server-decided
  * deadline. `deadlineMs` is already converted to this browser's clock (using
  * the server's own time as reference), so a wrong local clock cannot add or

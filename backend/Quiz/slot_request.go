@@ -67,7 +67,26 @@ func SlotStatus(c *gin.Context) {
 	if err := db.User_Questions.Coll.FindOne(
 		db.User_Questions.Context, bson.M{"userID": userID},
 	).Decode(&uq); err == nil {
-		c.JSON(http.StatusOK, gin.H{"status": "assigned", "shift": uq.Shift})
+		// The instructions page shows the candidate their shift and keeps the
+		// start button shut outside its entry window. /quiz/get enforces the
+		// same window; this only explains it up front. A candidate who already
+		// started may always go back in, until their personal deadline.
+		resp := gin.H{
+			"status":        "assigned",
+			"shift":         uq.Shift,
+			"server_time":   time.Now(),
+			"test_mode":     TestMode(),
+			"test_duration": int(TestDuration().Minutes()),
+		}
+		if prev, started, err := loadAttempt(userID); err == nil {
+			resp["started"] = started
+			resp["submitted"] = prev.Submitted
+		}
+		if s, err := getShift(uq.Shift); err == nil {
+			resp["start_time"] = s.Start
+			resp["entry_closes"] = s.Start.Add(EntryWindow())
+		}
+		c.JSON(http.StatusOK, resp)
 		return
 	}
 
