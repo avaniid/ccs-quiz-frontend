@@ -23,9 +23,9 @@ import (
 // The results page: one row per candidate with when they sat the quiz, how it
 // went and what the proctoring saw.
 
-// maxStrikes mirrors MAX_WARNINGS in the frontend (Quiz.jsx): reaching it
-// auto-submits the attempt.
-const maxStrikes = 15
+// maxWarnings mirrors MAX_WARNINGS in the frontend (Quiz.jsx): reaching it,
+// counting warnings of every type, auto-submits the attempt.
+const maxWarnings = 20
 
 // flagTypes is the column order for per-violation counts in the CSV.
 var flagTypes = []string{
@@ -298,7 +298,7 @@ func buildResults() ([]*resultRow, error) {
 			}
 			r.Marks = &m
 			switch {
-			case r.Strikes >= maxStrikes:
+			case r.Flags >= maxWarnings:
 				r.SubmitKind = "warnings"
 			case r.TimeTakenSec != nil && time.Duration(*r.TimeTakenSec)*time.Second >= duration-5*time.Second:
 				r.SubmitKind = "timeout"
@@ -335,7 +335,7 @@ func GetResults(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{
 		"generated_at":     time.Now(),
 		"duration_minutes": int(quiz.TestDuration().Minutes()),
-		"max_strikes":      maxStrikes,
+		"max_warnings":     maxWarnings,
 		"rows":             rows,
 	})
 }

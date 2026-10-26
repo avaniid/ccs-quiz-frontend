@@ -138,7 +138,7 @@ const fmtDur = (s) => s == null ? '' : `${Math.floor(s / 60)}:${String(s % 60).p
 const avg = (xs) => xs.length ? xs.reduce((a, b) => a + b, 0) / xs.length : null;
 const round1 = (x) => x == null ? '-' : (Math.round(x * 10) / 10).toString();
 
-let data = { rows: [], duration_minutes: 0, max_strikes: 15 };
+let data = { rows: [], duration_minutes: 0, max_warnings: 20 };
 let sortKey = 'shift', sortDir = 1;
 
 function needsReview(r) {
@@ -260,7 +260,7 @@ async function load() {
     data = await r.json();
     data.rows = data.rows || [];
     document.getElementById('meta').textContent =
-      `Updated ${fmtTime(data.generated_at)} IST · quiz length ${data.duration_minutes} min · auto-submit at ${data.max_strikes} strikes`;
+      `Updated ${fmtTime(data.generated_at)} IST · quiz length ${data.duration_minutes} min · auto-submit at ${data.max_warnings} warnings`;
     renderSummary(data.rows);
     renderHead();
     renderTable();

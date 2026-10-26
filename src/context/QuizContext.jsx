@@ -164,13 +164,13 @@ export function QuizProvider({ children }) {
     });
   }, [questions.length]);
 
-  /** Records a violation; returns the running strike count. */
+  /** Records a violation; returns the running warning count (all types). */
   const incrementWarning = useCallback((isStrike) => {
     warningCountRef.current += 1;
     if (isStrike) strikeCountRef.current += 1;
     setWarningCount(warningCountRef.current);
     setStrikeCount(strikeCountRef.current);
-    return strikeCountRef.current;
+    return warningCountRef.current;
   }, []);
 
   const markSubmitted = useCallback(() => {

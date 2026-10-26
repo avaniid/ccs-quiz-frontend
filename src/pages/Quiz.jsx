@@ -20,11 +20,14 @@ import { releaseCameraStream } from "../hooks/cameraStore";
 import WarningModal from "../components/WarningModal";
 import VoiceEnrollmentOverlay from "../components/VoiceEnrollmentOverlay";
 
-const MAX_WARNINGS = 15;
+// Every warning, of any type, counts toward this; reaching it auto-submits.
+// Keep in sync with maxWarnings in backend/admin_portal/results.go.
+const MAX_WARNINGS = 20;
 
 // Voice matching is the least reliable guard (a fan, a cough or the
-// candidate's own changing tone can trip it), so it still warns and is
-// reported, but does not count toward the auto-submit limit.
+// candidate's own changing tone can trip it), so it is reported as a
+// non-strike for the results page to tell apart. It still counts toward
+// MAX_WARNINGS like every other warning.
 const NON_STRIKE_VIOLATIONS = new Set(["voice-mismatch"]);
 
 // Backoff between submit attempts. Covers a cold-starting backend (Render's
@@ -42,7 +45,6 @@ export default function Quiz() {
     loadError,
     unauthorized,
     warningCount,
-    strikeCount,
     deadlineMs,
     submitted,
     answerQuestion,
@@ -93,11 +95,11 @@ export default function Quiz() {
 
       const isStrike = !NON_STRIKE_VIOLATIONS.has(type);
       reportViolation(type, isStrike);
-      const strikes = incrementWarning(isStrike);
+      const warnings = incrementWarning(isStrike);
       setViolationType(type);
       setModalVisible(true);
 
-      if (strikes >= MAX_WARNINGS) {
+      if (warnings >= MAX_WARNINGS) {
         submitQuizRef.current("warnings");
       }
     },
@@ -627,7 +629,7 @@ export default function Quiz() {
       {/* Warning Modal */}
       <WarningModal
         visible={modalVisible}
-        warningCount={strikeCount}
+        warningCount={warningCount}
         maxWarnings={MAX_WARNINGS}
         violationType={violationType}
         onDismiss={() => {
