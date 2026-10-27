@@ -303,9 +303,9 @@ export default function Instructions() {
               </h3>
               <ul className="text-xs sm:text-sm text-gray-600 space-y-2.5">
                 <li>• Camera & mic must remain active in fullscreen mode.</li>
-                <li>• Switching tabs or losing window focus triggers violation warnings.</li>
-                <li>• Proctoring flags and violations are recorded and reviewed by administrators.</li>
-                <li>• Maintain a quiet, well-lit environment throughout.</li>
+                <li>• Switching tabs or exiting fullscreen mode will automatically submit your test.</li>
+                <li>• Copy, cut, paste, and text selection are strictly disabled.</li>
+                <li>• Other proctoring flags are recorded and reviewed by administrators.</li>
               </ul>
             </div>
           </div>

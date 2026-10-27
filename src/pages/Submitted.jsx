@@ -26,10 +26,16 @@ export default function Submitted() {
     return () => clearInterval(timer);
   }, []);
 
+  const isViolationAutoSubmit = reason === "tab-switch" || reason === "fullscreen-exit";
+
   const getHeadingText = () => {
     switch (reason) {
       case "timeout":
         return "Time's up — your test was auto-submitted.";
+      case "tab-switch":
+        return "Test Auto-Submitted: Tab change detected.";
+      case "fullscreen-exit":
+        return "Test Auto-Submitted: Fullscreen mode was exited.";
       case "warnings":
         return "Your test was auto-submitted due to repeated violations.";
       case "manual":
@@ -46,8 +52,14 @@ export default function Submitted() {
       {/* Main Content */}
       <main className="flex-1 flex items-center justify-center p-6 py-8">
         <div className="card max-w-2xl w-full p-8 sm:p-12 text-center shadow-xs bg-white">
-          <div className="w-14 h-14 rounded-full bg-green-100 text-green-700 flex items-center justify-center mx-auto mb-4 text-2xl font-bold">
-            ✓
+          <div
+            className={`w-14 h-14 rounded-full flex items-center justify-center mx-auto mb-4 text-2xl font-bold ${
+              isViolationAutoSubmit
+                ? "bg-amber-100 text-amber-700"
+                : "bg-green-100 text-green-700"
+            }`}
+          >
+            {isViolationAutoSubmit ? "!" : "✓"}
           </div>
           <h2 className="font-display text-2xl sm:text-3xl font-bold mb-3 text-[var(--ink)]">
             {getHeadingText()}

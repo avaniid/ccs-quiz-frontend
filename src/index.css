@@ -52,3 +52,10 @@ body {
   border: 1px solid var(--border);
   border-radius: 12px;
 }
+
+.no-copy-paste {
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
+}

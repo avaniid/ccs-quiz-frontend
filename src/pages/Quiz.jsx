@@ -12,6 +12,7 @@ import {
 import useTimer from "../hooks/useTimer";
 import useTabSwitchGuard from "../hooks/useTabSwitchGuard";
 import useFullscreenGuard from "../hooks/useFullscreenGuard";
+import useClipboardGuard from "../hooks/useClipboardGuard";
 import useCameraStream from "../hooks/useCameraStream";
 import useFaceGuard from "../hooks/useFaceGuard";
 import useObjectGuard from "../hooks/useObjectGuard";
@@ -94,9 +95,14 @@ export default function Quiz() {
       reportViolation(type, isStrike);
       incrementWarning(isStrike);
       setViolationType(type);
+
+      // Auto-submit only when tab change or fullscreen mode is disabled/exited
+      if (type === "tab-switch" || type === "fullscreen-exit") {
+        submitQuizRef.current(type);
+        return;
+      }
+
       setModalVisible(true);
-      // Auto-submit removed: violations are logged and displayed to the user
-      // without auto-submitting the assessment.
     },
     [incrementWarning]
   );
@@ -204,6 +210,7 @@ export default function Quiz() {
 
   useTabSwitchGuard(handleViolation, active);
   useFullscreenGuard(handleViolation, active);
+  useClipboardGuard(active);
 
   // The fullscreen guard only reacts to LEAVING fullscreen. A candidate who
   // was never in it (fullscreen cannot be re-entered without a click, so every
@@ -386,7 +393,7 @@ export default function Quiz() {
   };
 
   return (
-    <div className="min-h-screen p-6 md:p-8">
+    <div className="min-h-screen p-6 md:p-8 no-copy-paste select-none">
       <div className="max-w-7xl mx-auto">
         {/* Header with Title and Prominent Timer */}
         <div className="flex flex-wrap items-center justify-between gap-4 mb-6">
