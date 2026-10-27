@@ -488,21 +488,28 @@
 
   // Modal detail
   function openDetail(row){
-  let html = `<h3 style="margin-top:0">${row.email||'No Email'}</h3>`
+  // Answers are typed by registrants: escape before building HTML.
+  let html = `<h3 style="margin-top:0">${htmlEsc(row.email||'No Email')}</h3>`
   html += '<table class="detail-table"><tbody>'
   state.columns.forEach(col => {
     if(col==='email') return
     const ans = row[col] || ''
-    html += `<tr><th>${pretty(col)}</th><td style="white-space:pre-wrap;">${linkify(ans)}</td></tr>`
+    html += `<tr><th>${htmlEsc(pretty(col))}</th><td style="white-space:pre-wrap;">${linkify(ans)}</td></tr>`
   })
   html += '</tbody></table>'
   document.getElementById('modalContent').innerHTML = html
   document.getElementById('modal').style.display='flex'
 }
 
-// Add this helper function:
+function htmlEsc(value) {
+  return String(value).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", "\"": "&quot;", "'": "&#39;" }[c]))
+}
+
+// Escapes the text, then turns http(s) links into anchors. Quotes are already
+// &quot; entities by then, which cannot close the href attribute.
 function linkify(text) {
   if (!text) return ''
+  text = htmlEsc(text)
   // Regex for URLs
   const urlRegex = /(https?:\/\/[^\s]+)/g
   // Highlight only the required domains

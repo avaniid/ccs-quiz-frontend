@@ -664,12 +664,12 @@ tbody tr:last-child td {
 
   // Modal detail
   function openDetail(row){
-    let html = `<h3 style="margin-top:0">${row.email||'No Email'}</h3>`
+    let html = `<h3 style="margin-top:0">${escapeHtml(row.email||'No Email')}</h3>`
     html += '<table class="detail-table"><tbody>'
     state.columns.forEach(col => {
       if(col==='email') return
       const ans = row[col] || ''
-      html += `<tr><th>${pretty(col)}</th><td style="white-space:pre-wrap;">${escapeHtml(ans)}</td></tr>`
+      html += `<tr><th>${escapeHtml(pretty(col))}</th><td style="white-space:pre-wrap;">${escapeHtml(ans)}</td></tr>`
     })
     html += '</tbody></table>'
     document.getElementById('modalContent').innerHTML = html
