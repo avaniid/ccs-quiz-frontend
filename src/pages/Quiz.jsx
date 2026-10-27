@@ -20,9 +20,6 @@ import { releaseCameraStream } from "../hooks/cameraStore";
 import WarningModal from "../components/WarningModal";
 import VoiceEnrollmentOverlay from "../components/VoiceEnrollmentOverlay";
 
-// Every warning, of any type, counts toward this; reaching it auto-submits.
-// Keep in sync with maxWarnings in backend/admin_portal/results.go.
-const MAX_WARNINGS = 20;
 
 // Voice matching is the least reliable guard (a fan, a cough or the
 // candidate's own changing tone can trip it), so it is reported as a
@@ -95,13 +92,11 @@ export default function Quiz() {
 
       const isStrike = !NON_STRIKE_VIOLATIONS.has(type);
       reportViolation(type, isStrike);
-      const warnings = incrementWarning(isStrike);
+      incrementWarning(isStrike);
       setViolationType(type);
       setModalVisible(true);
-
-      if (warnings >= MAX_WARNINGS) {
-        submitQuizRef.current("warnings");
-      }
+      // Auto-submit removed: violations are logged and displayed to the user
+      // without auto-submitting the assessment.
     },
     [incrementWarning]
   );
@@ -401,18 +396,36 @@ export default function Quiz() {
             </h1>
           </div>
 
-          {/* Prominent Timer */}
-          <div className="flex items-center gap-2 bg-white px-5 py-2.5 rounded-full border border-[var(--border)] shadow-2xs">
-            <span className="text-xs uppercase font-bold text-gray-500 tracking-wider">
-              Time Left:
-            </span>
-            <span
-              className={`font-display text-2xl font-bold ${
-                timeRemaining <= 300 ? "text-red-600 animate-pulse" : "text-[#3A94C2]"
-              }`}
-            >
-              {formatTime(timeRemaining)}
-            </span>
+          <div className="flex items-center gap-3">
+            {/* Flags Indicator */}
+            <div className="flex items-center gap-2 bg-white px-4 py-2 rounded-full border border-[var(--border)] shadow-2xs">
+              <span className="text-xs uppercase font-bold text-gray-500 tracking-wider">
+                Flags:
+              </span>
+              <span
+                className={`font-display text-lg font-bold px-2 py-0.5 rounded-full ${
+                  warningCount > 0
+                    ? "bg-red-50 text-red-600 border border-red-200"
+                    : "bg-green-50 text-green-700 border border-green-200"
+                }`}
+              >
+                {warningCount}
+              </span>
+            </div>
+
+            {/* Prominent Timer */}
+            <div className="flex items-center gap-2 bg-white px-5 py-2.5 rounded-full border border-[var(--border)] shadow-2xs">
+              <span className="text-xs uppercase font-bold text-gray-500 tracking-wider">
+                Time Left:
+              </span>
+              <span
+                className={`font-display text-2xl font-bold ${
+                  timeRemaining <= 300 ? "text-red-600 animate-pulse" : "text-[#3A94C2]"
+                }`}
+              >
+                {formatTime(timeRemaining)}
+              </span>
+            </div>
           </div>
         </div>
 
@@ -630,7 +643,6 @@ export default function Quiz() {
       <WarningModal
         visible={modalVisible}
         warningCount={warningCount}
-        maxWarnings={MAX_WARNINGS}
         violationType={violationType}
         onDismiss={() => {
           setModalVisible(false);

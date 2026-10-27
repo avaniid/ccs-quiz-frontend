@@ -159,6 +159,44 @@ document.getElementById('assignShiftsBtn').onclick = async function() {
     (data.warning ? " | Warning: " + data.warning : "");
 };
 </script>
+
+<div style="margin-top:18px;">
+  <button id="forceReassignBtn" class="btn" style="background:linear-gradient(135deg,#e53e3e,#dd6b20);">⚠ Force Reassign All Questions</button>
+  <p class="muted" style="margin:6px 0 0; font-size:13px;">
+    Deletes <strong>all</strong> existing papers in user_questions and reassigns fresh ones from the current question bank.
+    Use this after updating the question bank to fix mismatched questions.
+  </p>
+  <div id="forceReassignResult" style="margin-top:10px; color:#facc15; font-weight:600;"></div>
+</div>
+<script>
+document.getElementById('forceReassignBtn').onclick = async function() {
+  const numShifts = parseInt(document.getElementById('numShifts').value, 10);
+  const questionsPerSet = parseInt(document.getElementById('questionsPerSet').value, 10);
+  if (!numShifts || numShifts < 1) {
+    alert("Enter a valid number of shifts.");
+    return;
+  }
+  if (!questionsPerSet || questionsPerSet < 1) {
+    alert("Enter a valid number of questions per set.");
+    return;
+  }
+  if (!confirm("⚠ WARNING: This will DELETE all existing papers and reassign new ones.\n\nStudents who have already started or submitted will NOT be affected (their responses are stored separately), but their paper will change if they haven't submitted yet.\n\nAre you sure?")) return;
+  if (!confirm("FINAL CONFIRMATION: Delete ALL existing user_questions and reassign?")) return;
+  document.getElementById('forceReassignResult').textContent = 'Reassigning... please wait.';
+  const res = await fetch('/admin/assign-shifts', {
+    method: 'POST',
+    headers: {'Content-Type':'application/json'},
+    body: JSON.stringify({num_shifts: numShifts, questions_per_set: questionsPerSet, force_reassign: true})
+  });
+  const data = await res.json();
+  document.getElementById('forceReassignResult').textContent =
+    (res.ok ? (data.message || "Done") : "Error: " + (data.error || res.status)) +
+    " | Deleted old: " + (data.deleted_old || 0) +
+    " | Created: " + (data.created || 0) +
+    (data.warning ? " | Warning: " + data.warning : "");
+  loadSignedInUsers(true);
+};
+</script>
 <!-- Per-user slot assignment. Unlike "Assign Shifts & Questions" (which sweeps
      reg_responses), this works off accounts that have simply signed in, so a
      slot can be handed out before the registration app is live. -->

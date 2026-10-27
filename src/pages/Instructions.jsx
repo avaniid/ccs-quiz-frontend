@@ -249,9 +249,8 @@ export default function Instructions() {
                         </span>
                       )}
                     </p>
-                    {knownSlot.startMs !== null && knownSlot.entryClosesMs !== null && (
+                    {knownSlot.startMs !== null && (
                       <p className="text-xs text-gray-600 mt-1">
-                        Entry open {formatTime(knownSlot.startMs)} – {formatTime(knownSlot.entryClosesMs)} IST.
                         Once you start you get the full {durationMinutes} minutes.
                       </p>
                     )}
@@ -262,7 +261,7 @@ export default function Instructions() {
                         <span className="text-amber-700">Opens in {formatCountdown(knownSlot.startMs - now)}</span>
                       ) : gate.reason === "closed" ? (
                         <span className="text-red-700">
-                          Entry for your shift closed at {formatTime(knownSlot.entryClosesMs)} IST. Contact the CCS team.
+                          Entry for your shift has closed. Please contact the CCS team.
                         </span>
                       ) : gate.reason === "submitted" ? (
                         <span className="text-gray-700">You have already submitted this test.</span>
@@ -270,7 +269,7 @@ export default function Instructions() {
                         <span className="text-amber-700">The time for your shift has not been announced yet.</span>
                       ) : (
                         <span className="text-green-700">
-                          Entry is open now. Start before {formatTime(knownSlot.entryClosesMs)} IST.
+                          Entry is open now. Please start your test.
                         </span>
                       )}
                     </p>
@@ -305,7 +304,7 @@ export default function Instructions() {
               <ul className="text-xs sm:text-sm text-gray-600 space-y-2.5">
                 <li>• Camera & mic must remain active in fullscreen mode.</li>
                 <li>• Switching tabs or losing window focus triggers violation warnings.</li>
-                <li>• Reaching 20 proctoring warnings auto-submits your attempt immediately.</li>
+                <li>• Proctoring flags and violations are recorded and reviewed by administrators.</li>
                 <li>• Maintain a quiet, well-lit environment throughout.</li>
               </ul>
             </div>

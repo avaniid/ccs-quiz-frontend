@@ -198,7 +198,11 @@ func buildResults() ([]*resultRow, error) {
 			}
 			counted[*a.QuestionID] = true
 			r.Answered++
-			if correct, ok := key[*a.QuestionID]; ok && correct == *a.Answer {
+			correct, ok := key[*a.QuestionID]
+			if !ok {
+				continue
+			}
+			if correct == *a.Answer {
 				r.Correct++
 			} else {
 				r.Wrong++

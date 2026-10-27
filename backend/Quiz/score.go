@@ -58,7 +58,11 @@ func CalcScore() error {
 				continue
 			}
 			counted[*resp.QuestionID] = true
-			if correct, ok := answerMap[*resp.QuestionID]; ok && correct == *resp.Answer {
+			correct, ok := answerMap[*resp.QuestionID]
+			if !ok {
+				continue
+			}
+			if correct == *resp.Answer {
 				score = score + 4
 			} else {
 				score = score - 1
@@ -115,7 +119,11 @@ func scoreResponses(responses []models.Quiz_Answer) int {
 			continue
 		}
 		counted[*r.QuestionID] = true
-		if correct, ok := key[*r.QuestionID]; ok && correct == *r.Answer {
+		correct, ok := key[*r.QuestionID]
+		if !ok {
+			continue
+		}
+		if correct == *r.Answer {
 			score += 4
 		} else {
 			score--

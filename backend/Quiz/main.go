@@ -61,7 +61,7 @@ func EntryWindow() time.Duration {
 			return time.Duration(n) * time.Minute
 		}
 	}
-	return TestDuration()
+	return 10 * time.Minute
 }
 
 // shiftCacheTTL bounds how stale a shift timing can be. Admins can re-time a

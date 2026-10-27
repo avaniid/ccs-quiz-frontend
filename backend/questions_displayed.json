@@ -1,0 +1,907 @@
+[
+  {
+    "id": "",
+    "shift": 1,
+    "papers_count": 3,
+    "question": "2+2",
+    "options": [
+      "2",
+      "4"
+    ],
+    "in_bank": false
+  },
+  {
+    "id": "",
+    "shift": 1,
+    "papers_count": 3,
+    "question": "5+5",
+    "options": [
+      "10",
+      "20",
+      "23",
+      "67"
+    ],
+    "in_bank": false
+  },
+  {
+    "id": "",
+    "shift": 1,
+    "papers_count": 54,
+    "question": "A and B together can finish a job in 12 days, B and C together in 15 days, and A and C together in 20 days. How many days will A, B and C take working together?",
+    "options": [
+      "10",
+      "12",
+      "15",
+      "8"
+    ],
+    "in_bank": true
+  },
+  {
+    "id": "",
+    "shift": 1,
+    "papers_count": 56,
+    "question": "A shopkeeper buys an article for Rs 500 and marks it 40% above the cost price. He then gives a 10% discount. What is his profit?",
+    "options": [
+      "Rs 100",
+      "Rs 120",
+      "Rs 130",
+      "Rs 150"
+    ],
+    "in_bank": true
+  },
+  {
+    "id": "",
+    "shift": 1,
+    "papers_count": 288,
+    "question": "Assume \u0026\u0026 and || short-circuit and x++ yields the old value, then increments. x = 5; y = (x++ \u003e 5) \u0026\u0026 (x++ \u003e 5); z = (x++ \u003e 5) || (x++ \u003e 5). (y and z are 1 for true, 0 for false.) What is x + y + z at the end?",
+    "options": [
+      "10",
+      "7",
+      "8",
+      "9"
+    ],
+    "in_bank": false
+  },
+  {
+    "id": "",
+    "shift": 1,
+    "papers_count": 289,
+    "question": "How many times does count++ execute? count = 0; for i = 1 to 10: if i % 3 == 0: continue; for j = 1 to i: if j * j \u003e i: break; count++.",
+    "options": [
+      "11",
+      "12",
+      "13",
+      "15"
+    ],
+    "in_bank": false
+  },
+  {
+    "id": "",
+    "shift": 1,
+    "papers_count": 54,
+    "question": "How many times does the inner statement run?\nc = 0\nfor i from 1 to 4:\n    for j from i to 4:\n        c = c + 1\nprint(c)",
+    "options": [
+      "10",
+      "12",
+      "16",
+      "8"
+    ],
+    "in_bank": true
+  },
+  {
+    "id": "",
+    "shift": 1,
+    "papers_count": 287,
+    "question": "In C-style integer arithmetic, / truncates toward zero and % takes the sign of the dividend. What is the value of (-17 / 5) * 100 + (-17 % 5)?",
+    "options": [
+      "-298",
+      "-300",
+      "-302",
+      "-402"
+    ],
+    "in_bank": false
+  },
+  {
+    "id": "",
+    "shift": 1,
+    "papers_count": 287,
+    "question": "Let s = \"competitive\". Which line gives the values of s[8:2:-2], s[2:9:3], and s[::-2], in that order?",
+    "options": [
+      "\"iie\", \"mpi\", \"evtpmo\"",
+      "\"iie\", \"mti\", \"eiiemc\"",
+      "\"iim\", \"mti\", \"eiiemc\"",
+      "\"tie\", \"mti\", \"eiiemc\""
+    ],
+    "in_bank": false
+  },
+  {
+    "id": "",
+    "shift": 1,
+    "papers_count": 288,
+    "question": "Python's // floors and % takes the sign of the divisor. What is (-7//2) + (-7%2) + (7//-2) + (7%-2)?",
+    "options": [
+      "-4",
+      "-6",
+      "-8",
+      "0"
+    ],
+    "in_bank": false
+  },
+  {
+    "id": "",
+    "shift": 1,
+    "papers_count": 55,
+    "question": "Two numbers are in the ratio 3:5. If their sum is 96, what is the difference between them?",
+    "options": [
+      "12",
+      "24",
+      "36",
+      "48"
+    ],
+    "in_bank": true
+  },
+  {
+    "id": "",
+    "shift": 1,
+    "papers_count": 288,
+    "question": "What happens? x = 10; def g(): print(x); x = 5; g().",
+    "options": [
+      "Prints 10",
+      "Prints 5",
+      "Prints None",
+      "Raises UnboundLocalError"
+    ],
+    "in_bank": false
+  },
+  {
+    "id": "",
+    "shift": 1,
+    "papers_count": 288,
+    "question": "What is printed? a = [1, 2]; b = a; b += [3]; c = a; c = c + [4]; print(len(a) * 10 + len(c)).",
+    "options": [
+      "23",
+      "24",
+      "33",
+      "34"
+    ],
+    "in_bank": false
+  },
+  {
+    "id": "",
+    "shift": 1,
+    "papers_count": 286,
+    "question": "What is printed? cnt = 0; for i in range(2, 30): for j in range(2, i): if i % j == 0: break; else: cnt += 1; print(cnt).",
+    "options": [
+      "10",
+      "11",
+      "28",
+      "9"
+    ],
+    "in_bank": false
+  },
+  {
+    "id": "",
+    "shift": 1,
+    "papers_count": 287,
+    "question": "What is printed? d = {}; d[1] = 'a'; d[1.0] = 'b'; d[True] = 'c'; d['1'] = 'd'; print(len(d), d[1]).",
+    "options": [
+      "2 a",
+      "2 c",
+      "3 b",
+      "4 c"
+    ],
+    "in_bank": false
+  },
+  {
+    "id": "",
+    "shift": 1,
+    "papers_count": 287,
+    "question": "What is printed? def add(x, lst=[]): lst.append(x); return lst. a = add(1); b = add(2); c = add(3, []); print(len(a) + len(b) + len(c)).",
+    "options": [
+      "3",
+      "4",
+      "5",
+      "6"
+    ],
+    "in_bank": false
+  },
+  {
+    "id": "",
+    "shift": 1,
+    "papers_count": 288,
+    "question": "What is printed? def f(): x = 1; try: return x; finally: x = 2. print(f()).",
+    "options": [
+      "1",
+      "2",
+      "3",
+      "Nothing; it raises an error"
+    ],
+    "in_bank": false
+  },
+  {
+    "id": "",
+    "shift": 1,
+    "papers_count": 288,
+    "question": "What is printed? fs = [lambda: i for i in range(3)]; print(sum(f() for f in fs)).",
+    "options": [
+      "0",
+      "3",
+      "6",
+      "9"
+    ],
+    "in_bank": false
+  },
+  {
+    "id": "",
+    "shift": 1,
+    "papers_count": 286,
+    "question": "What is the exact output (digits printed left to right) of h(100)? Integer division truncates. h(n): if n == 0: return; h(n / 3); print(n % 3).",
+    "options": [
+      "10102",
+      "10201",
+      "10210",
+      "11001"
+    ],
+    "in_bank": false
+  },
+  {
+    "id": "",
+    "shift": 1,
+    "papers_count": 286,
+    "question": "What is the sum of all elements of a at the end? (C with pointer arithmetic.) int a[] = {10, 20, 30, 40, 50}; int *p = a; p += 2; *p-- = 99; *p += 5;.",
+    "options": [
+      "214",
+      "219",
+      "224",
+      "229"
+    ],
+    "in_bank": false
+  },
+  {
+    "id": "",
+    "shift": 1,
+    "papers_count": 54,
+    "question": "What is the time complexity of this code?\nfor i from 1 to n:\n    j = 1\n    while j \u003c n:\n        j = j * 2",
+    "options": [
+      "O(log n)",
+      "O(n log n)",
+      "O(n)",
+      "O(n^2)"
+    ],
+    "in_bank": true
+  },
+  {
+    "id": "",
+    "shift": 1,
+    "papers_count": 55,
+    "question": "Which of the following is the correct time complexity of accessing an element at a given index in an array, and of inserting a new element at the beginning of an array of n elements (shifting the others)?",
+    "options": [
+      "Access O(1), insert at beginning O(1)",
+      "Access O(1), insert at beginning O(n)",
+      "Access O(n), insert at beginning O(1)",
+      "Access O(n), insert at beginning O(n)"
+    ],
+    "in_bank": true
+  },
+  {
+    "id": "",
+    "shift": 1,
+    "papers_count": 289,
+    "question": "v is a signed 8-bit integer in two's complement (wraps on overflow; \u003e\u003e is an arithmetic shift that keeps the sign). v = 100; v = v + 50; v = v \u003e\u003e 1; v = v \u0026 0x0F. What is v at the end?",
+    "options": [
+      "11",
+      "5",
+      "75",
+      "9"
+    ],
+    "in_bank": false
+  },
+  {
+    "id": "",
+    "shift": 1,
+    "papers_count": 3,
+    "question": "who is best in the ccs core",
+    "options": [
+      "me"
+    ],
+    "in_bank": false
+  },
+  {
+    "id": "",
+    "shift": 2,
+    "papers_count": 64,
+    "question": "A number is first increased by 20% and the result is then decreased by 25%. If the final value is 540, what was the original number?",
+    "options": [
+      "580",
+      "600",
+      "650",
+      "720"
+    ],
+    "in_bank": true
+  },
+  {
+    "id": "",
+    "shift": 2,
+    "papers_count": 65,
+    "question": "An integer array is stored in contiguous memory (indexing starts at 0). Its base address (the address of arr[0]) is 1000, and each element takes 4 bytes. What is the memory address of arr[5]?",
+    "options": [
+      "1005",
+      "1016",
+      "1020",
+      "1024"
+    ],
+    "in_bank": true
+  },
+  {
+    "id": "",
+    "shift": 2,
+    "papers_count": 287,
+    "question": "Assume standard C semantics. What is x + y + z? int x = 2; int y = (x++ \u003e 2) || (++x \u003e 3); int z = (x++ == 4) \u0026\u0026 (x++ \u003c 6);",
+    "options": [
+      "10",
+      "7",
+      "8",
+      "9"
+    ],
+    "in_bank": false
+  },
+  {
+    "id": "",
+    "shift": 2,
+    "papers_count": 286,
+    "question": "Assume uint8_t is an 8-bit unsigned type. What is the final value of v? uint8_t v = 201; v = (v \u003e\u003e 2) ^ 0x3C;",
+    "options": [
+      "14",
+      "18",
+      "46",
+      "50"
+    ],
+    "in_bank": false
+  },
+  {
+    "id": "",
+    "shift": 2,
+    "papers_count": 65,
+    "question": "Find the next number: 0, 6, 24, 60, 120, ?",
+    "options": [
+      "180",
+      "200",
+      "210",
+      "240"
+    ],
+    "in_bank": true
+  },
+  {
+    "id": "",
+    "shift": 2,
+    "papers_count": 286,
+    "question": "For s = 'algorithmic', what are s[9:1:-3], s[1:10:4], and s[::-3], in that order?",
+    "options": [
+      "'imc', 'lri', 'chrl'",
+      "'ito', 'lii', 'chrl'",
+      "'ito', 'lri', 'ciml'",
+      "'tim', 'lii', 'chrl'"
+    ],
+    "in_bank": false
+  },
+  {
+    "id": "",
+    "shift": 2,
+    "papers_count": 287,
+    "question": "How many times does count++ execute? count = 0; for i = 1 to 8: if i % 4 == 0: continue; for j = 1 to i: if i + j \u003e 7: break; count++",
+    "options": [
+      "10",
+      "11",
+      "8",
+      "9"
+    ],
+    "in_bank": false
+  },
+  {
+    "id": "",
+    "shift": 2,
+    "papers_count": 64,
+    "question": "Selection sort is applied to the array [64, 25, 12, 22, 11]. What does the array look like after the first pass?",
+    "options": [
+      "[11, 12, 22, 25, 64]",
+      "[11, 25, 12, 22, 64]",
+      "[12, 25, 64, 22, 11]",
+      "[25, 12, 22, 11, 64]"
+    ],
+    "in_bank": true
+  },
+  {
+    "id": "",
+    "shift": 2,
+    "papers_count": 286,
+    "question": "What exact sequence of digits is printed by h(13)? Integer division truncates. h(n): if n == 0: return; h(n / 2); print(n % 2)",
+    "options": [
+      "0110",
+      "1011",
+      "1101",
+      "1110"
+    ],
+    "in_bank": false
+  },
+  {
+    "id": "",
+    "shift": 2,
+    "papers_count": 285,
+    "question": "What is printed? cnt = 0; for i in range(2, 50): for j in range(2, i): if i % j == 0: break; else: cnt += 1; print(cnt)",
+    "options": [
+      "14",
+      "15",
+      "16",
+      "17"
+    ],
+    "in_bank": false
+  },
+  {
+    "id": "",
+    "shift": 2,
+    "papers_count": 287,
+    "question": "What is printed? d = {}; d[0] = 'A'; d[False] = 'B'; d[0.0] = 'C'; d[True] = 'D'; d[1] = 'E'; print(len(d), d[False], d[1.0])",
+    "options": [
+      "2 B E",
+      "2 C E",
+      "3 C D",
+      "5 B E"
+    ],
+    "in_bank": false
+  },
+  {
+    "id": "",
+    "shift": 2,
+    "papers_count": 288,
+    "question": "What is printed? fs = [lambda x=i: x + i for i in range(4)]; print(sum(f() for f in fs))",
+    "options": [
+      "12",
+      "18",
+      "24",
+      "6"
+    ],
+    "in_bank": false
+  },
+  {
+    "id": "",
+    "shift": 2,
+    "papers_count": 285,
+    "question": "What is the sum of all elements of a after these operations? int a[] = {3, 6, 9, 12, 15}; int *p = a + 1; *p += *(p + 2); p++; *p = *(p - 1) - a[0];",
+    "options": [
+      "57",
+      "60",
+      "63",
+      "66"
+    ],
+    "in_bank": false
+  },
+  {
+    "id": "",
+    "shift": 2,
+    "papers_count": 288,
+    "question": "What is the value of r? Assume int is wide enough. int r = 3 + 4 * 2 \u003c\u003c 1 \u0026 15;",
+    "options": [
+      "11",
+      "14",
+      "22",
+      "6"
+    ],
+    "in_bank": false
+  },
+  {
+    "id": "",
+    "shift": 4,
+    "papers_count": 66,
+    "question": "A box has 4 red and 6 blue balls. Two balls are drawn at random without replacement. What is the probability that at least one ball is red?",
+    "options": [
+      "2/3",
+      "3/5",
+      "7/15",
+      "8/15"
+    ],
+    "in_bank": true
+  },
+  {
+    "id": "",
+    "shift": 4,
+    "papers_count": 56,
+    "question": "A function modifies its parameter, and the original variable in the caller changes too. Which mechanism of passing arguments is this?",
+    "options": [
+      "Pass by copy",
+      "Pass by name",
+      "Pass by reference",
+      "Pass by value"
+    ],
+    "in_bank": true
+  },
+  {
+    "id": "",
+    "shift": 4,
+    "papers_count": 56,
+    "question": "A person covers the first third of a journey at 20 km/h, the second third at 30 km/h, and the last third at 60 km/h. What is the average speed for the whole journey?",
+    "options": [
+      "30 km/h",
+      "32 km/h",
+      "35 km/h",
+      "36.67 km/h"
+    ],
+    "in_bank": true
+  },
+  {
+    "id": "",
+    "shift": 4,
+    "papers_count": 66,
+    "question": "Assume integers are passed by value and arrays are passed by reference. What is printed?\nfunction modify(a, b):\n    a = a + 5\n    b[0] = b[0] + 5\n\nx = 10\narr = [10]\nmodify(x, arr)\nprint(x, arr[0])",
+    "options": [
+      "10 10",
+      "10 15",
+      "15 10",
+      "15 15"
+    ],
+    "in_bank": true
+  },
+  {
+    "id": "",
+    "shift": 4,
+    "papers_count": 55,
+    "question": "Bubble sort is applied to the array [5, 1, 4, 2, 8]. What does the array look like after the first full pass?",
+    "options": [
+      "[1, 2, 4, 5, 8]",
+      "[1, 4, 2, 5, 8]",
+      "[1, 4, 5, 2, 8]",
+      "[5, 1, 4, 2, 8]"
+    ],
+    "in_bank": true
+  },
+  {
+    "id": "",
+    "shift": 4,
+    "papers_count": 2,
+    "question": "Consider the following C program:\r\n\r\nint a[] = {10, 20, 30, 40, 50};\r\nint *p = a;\r\n\r\np += 2;\r\n*p-- = 99;\r\n*p += 5;\r\n\r\nWhat is the sum of all elements of array a at the end of the program?\r\n",
+    "options": [
+      "204",
+      "214",
+      "224",
+      "234"
+    ],
+    "in_bank": false
+  },
+  {
+    "id": "",
+    "shift": 4,
+    "papers_count": 65,
+    "question": "Fill in the blanks so the function checks whether a number n is prime (returns true if prime, false otherwise). Assume sqrt(n) returns the integer part of the square root, and the loop includes its end value.\nfunction isPrime(n):\n    if n \u003c 2: return false\n    for i from 2 to ____ (A):\n        if n % i ____ (B) 0:\n            return false\n    return true",
+    "options": [
+      "A: n, B: !=",
+      "A: n, B: ==",
+      "A: sqrt(n), B: !=",
+      "A: sqrt(n), B: =="
+    ],
+    "in_bank": true
+  },
+  {
+    "id": "",
+    "shift": 4,
+    "papers_count": 54,
+    "question": "Fill in the blanks so the function reverses a positive integer (e.g., 123 becomes 321). Assume integer division.\nfunction reverse(n):\n    rev = 0\n    while n \u003e 0:\n        digit = ____ (A)\n        rev = rev * 10 + digit\n        n = ____ (B)\n    return rev",
+    "options": [
+      "A: n % 10, B: n % 10",
+      "A: n % 10, B: n / 10",
+      "A: n / 10, B: n % 10",
+      "A: n / 10, B: n / 10"
+    ],
+    "in_bank": true
+  },
+  {
+    "id": "",
+    "shift": 4,
+    "papers_count": 68,
+    "question": "Find the next number: 2, 5, 4, 10, 8, 20, ?",
+    "options": [
+      "12",
+      "16",
+      "24",
+      "40"
+    ],
+    "in_bank": true
+  },
+  {
+    "id": "",
+    "shift": 4,
+    "papers_count": 53,
+    "question": "Find the next number: 2, 6, 15, 31, 56, ?",
+    "options": [
+      "100",
+      "82",
+      "92",
+      "96"
+    ],
+    "in_bank": true
+  },
+  {
+    "id": "",
+    "shift": 4,
+    "papers_count": 54,
+    "question": "Find the next number: 3, 9, 7, 21, 19, 57, ?",
+    "options": [
+      "54",
+      "55",
+      "59",
+      "60"
+    ],
+    "in_bank": true
+  },
+  {
+    "id": "",
+    "shift": 4,
+    "papers_count": 1,
+    "question": "In C-style integer arithmetic, integer division (/) truncates toward zero, \r\nand the remainder operator (%) takes the sign of the dividend.\r\n\r\nWhat is the output?\r\n\r\n(a / b) * 10 + (a % b) * 2",
+    "options": [
+      "-22",
+      "-38",
+      "-42",
+      "-48"
+    ],
+    "in_bank": false
+  },
+  {
+    "id": "",
+    "shift": 4,
+    "papers_count": 66,
+    "question": "The ratio of boys to girls in a class is 5:3. If there are 24 more boys than girls, what is the total number of students?",
+    "options": [
+      "120",
+      "72",
+      "84",
+      "96"
+    ],
+    "in_bank": true
+  },
+  {
+    "id": "",
+    "shift": 4,
+    "papers_count": 66,
+    "question": "Two trains of lengths 150 m and 100 m run on parallel tracks in opposite directions at 60 km/h and 40 km/h. How long will they take to completely cross each other?",
+    "options": [
+      "10 seconds",
+      "12 seconds",
+      "8 seconds",
+      "9 seconds"
+    ],
+    "in_bank": true
+  },
+  {
+    "id": "",
+    "shift": 4,
+    "papers_count": 67,
+    "question": "What does f(5) return?\nfunction f(n):\n    if n \u003c= 1: return 1\n    return f(n-1) + 2 * f(n-2)",
+    "options": [
+      "11",
+      "16",
+      "21",
+      "43"
+    ],
+    "in_bank": true
+  },
+  {
+    "id": "",
+    "shift": 4,
+    "papers_count": 57,
+    "question": "What does f(5) return?\nfunction f(n):\n    if n \u003c= 1: return 1\n    return f(n-1) + f(n-2)",
+    "options": [
+      "10",
+      "13",
+      "5",
+      "8"
+    ],
+    "in_bank": true
+  },
+  {
+    "id": "",
+    "shift": 4,
+    "papers_count": 66,
+    "question": "What is printed?\nc = 0\nfor i from 1 to 5:\n    for j from 1 to i:\n        if (i + j) % 2 == 0: c = c + 1\nprint(c)",
+    "options": [
+      "10",
+      "15",
+      "8",
+      "9"
+    ],
+    "in_bank": true
+  },
+  {
+    "id": "",
+    "shift": 4,
+    "papers_count": 54,
+    "question": "What is printed?\ncount = 0\nfor i from 1 to 10:\n    if i % 2 == 0: continue\n    if i \u003e 7: break\n    count = count + i\nprint(count)",
+    "options": [
+      "12",
+      "16",
+      "20",
+      "25"
+    ],
+    "in_bank": true
+  },
+  {
+    "id": "",
+    "shift": 4,
+    "papers_count": 67,
+    "question": "What is printed?\ntotal = 0\nfor i from 1 to 12:\n    if i % 3 == 0: continue\n    if i \u003e 9: break\n    total = total + i\nprint(total)",
+    "options": [
+      "24",
+      "27",
+      "33",
+      "37"
+    ],
+    "in_bank": true
+  },
+  {
+    "id": "",
+    "shift": 4,
+    "papers_count": 287,
+    "question": "What is printed? a = [[1], [2]]; b = a[:]; b[0].append(3); b[1] = b[1] + [4]; print(len(a[0]) * 100 + len(a[1]) * 10 + len(b[1]))",
+    "options": [
+      "122",
+      "212",
+      "223",
+      "232"
+    ],
+    "in_bank": false
+  },
+  {
+    "id": "",
+    "shift": 4,
+    "papers_count": 286,
+    "question": "What is printed? def f(): x = [1]; try: return x; finally: x.append(2); x = [9]. print(f())",
+    "options": [
+      "None",
+      "[1, 2]",
+      "[1]",
+      "[9]"
+    ],
+    "in_bank": false
+  },
+  {
+    "id": "",
+    "shift": 4,
+    "papers_count": 287,
+    "question": "What is printed? def f(x, items=[]): items.append(x); return items. a = f(1); b = f(2); c = f(3, a.copy()); print(len(a), len(b), len(c), sum(a))",
+    "options": [
+      "2 2 3 3",
+      "2 2 4 3",
+      "2 3 3 3",
+      "3 3 3 6"
+    ],
+    "in_bank": false
+  },
+  {
+    "id": "",
+    "shift": 4,
+    "papers_count": 286,
+    "question": "What is the final value of result? int a = -29, b = 7; int result = (a / b) * 10 + (a % b) * 2;",
+    "options": [
+      "-42",
+      "-46",
+      "-48",
+      "-52"
+    ],
+    "in_bank": false
+  },
+  {
+    "id": "",
+    "shift": 4,
+    "papers_count": 288,
+    "question": "What is the final value of x? int a[] = {2, 4, 6, 8, 10}; int *p = a + 4; int x = *p--; x += *--p; x += *(p - 1);",
+    "options": [
+      "18",
+      "20",
+      "22",
+      "24"
+    ],
+    "in_bank": false
+  },
+  {
+    "id": "",
+    "shift": 4,
+    "papers_count": 65,
+    "question": "What is the maximum number of comparisons binary search needs in the worst case on a sorted array of 100 elements?",
+    "options": [
+      "50",
+      "6",
+      "7",
+      "8"
+    ],
+    "in_bank": true
+  },
+  {
+    "id": "",
+    "shift": 4,
+    "papers_count": 54,
+    "question": "What is the maximum number of comparisons binary search needs in the worst case on a sorted array of 1000 elements?",
+    "options": [
+      "10",
+      "500",
+      "8",
+      "9"
+    ],
+    "in_bank": true
+  },
+  {
+    "id": "",
+    "shift": 4,
+    "papers_count": 2,
+    "question": "What is the output of the following code?\r\n\r\ndef add(x, lst=[]):\r\n    lst.append(x)\r\n    return lst\r\n\r\na = add(1)\r\nb = add(2)\r\nc = add(3, [])\r\n\r\nprint(len(a) + len(b) + len(c))",
+    "options": [
+      "3",
+      "4",
+      "5",
+      "Error"
+    ],
+    "in_bank": false
+  },
+  {
+    "id": "",
+    "shift": 4,
+    "papers_count": 1,
+    "question": "What is the output of the following code?\r\n\r\ndef f():\r\n    x = [1]\r\n    try:\r\n        return x\r\n    finally:\r\n        x.append(2)\r\n        x = [9]\r\n\r\nprint(f())",
+    "options": [
+      "[1, 2, 9]",
+      "[1, 2]",
+      "[1]",
+      "[9]"
+    ],
+    "in_bank": false
+  },
+  {
+    "id": "",
+    "shift": 4,
+    "papers_count": 1,
+    "question": "What is the output of the following code? \r\n\r\ndef f(x, items=[]):\r\n    items.append(x)\r\n    return items\r\n\r\na = f(1)\r\nb = f(2)\r\nc = f(3, a.copy())\r\nprint(len(a), len(b), len(c), sum(a))",
+    "options": [
+      " 1 1 2 1",
+      "2 2 3 3 ",
+      "2 2 3 6 ",
+      "3 3 3 6"
+    ],
+    "in_bank": false
+  },
+  {
+    "id": "",
+    "shift": 4,
+    "papers_count": 1,
+    "question": "What is the output printed left to right when h(100) is called?\r\nInteger division truncated to zero. (Assume C/C++ arithmetic)\r\n\r\nvoid h(int n) {\r\n    if (n == 0)\r\n        return;\r\n    h(n / 3);\r\n    printf(\"%d\", n % 3);\r\n}",
+    "options": [
+      "10201",
+      "10202",
+      "11001",
+      "11021"
+    ],
+    "in_bank": false
+  },
+  {
+    "id": "",
+    "shift": 4,
+    "papers_count": 64,
+    "question": "What is the time complexity of this code?\ni = 1\nwhile i \u003c n:\n    for j from 1 to i:\n        print(j)\n    i = i * 2",
+    "options": [
+      "O(log n)",
+      "O(n log n)",
+      "O(n)",
+      "O(n^2)"
+    ],
+    "in_bank": true
+  },
+  {
+    "id": "",
+    "shift": 4,
+    "papers_count": 1,
+    "question": "cnt = 0\r\nfor i in range(2, 50):\r\n    for j in range(2, i):\r\n        if i % j == 0:\r\n            break\r\n    else:\r\n        cnt += 1\r\nprint(cnt)",
+    "options": [
+      "14",
+      "15",
+      "16",
+      "48"
+    ],
+    "in_bank": false
+  }
+]

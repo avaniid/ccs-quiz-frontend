@@ -146,8 +146,9 @@ func mixedSet(pool []models.Quiz_Questions, k int) []models.Quiz_Questions {
 
 func AssignShiftsAndQuestions(c *gin.Context) {
 	var req struct {
-		NumShifts       int `json:"num_shifts"`
-		QuestionsPerSet int `json:"questions_per_set"`
+		NumShifts       int  `json:"num_shifts"`
+		QuestionsPerSet int  `json:"questions_per_set"`
+		ForceReassign   bool `json:"force_reassign"`
 	}
 	if err := c.ShouldBindJSON(&req); err != nil || req.NumShifts < 1 || req.QuestionsPerSet < 1 {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "num_shifts and questions_per_set required"})
@@ -176,6 +177,34 @@ func AssignShiftsAndQuestions(c *gin.Context) {
 			}
 		}
 	}
+	// Also gather any candidate imported via candidates CSV or existing papers
+	if candCur, err := db.Candidates.Coll.Find(db.Candidates.Context, bson.M{}); err == nil {
+		defer candCur.Close(db.Candidates.Context)
+		for candCur.Next(db.Candidates.Context) {
+			var doc struct {
+				UserID any `bson:"userID"`
+			}
+			if err := candCur.Decode(&doc); err == nil {
+				if id, ok := uidString(doc.UserID); ok {
+					uniq[id] = struct{}{}
+				}
+			}
+		}
+	}
+	if uqCur, err := db.User_Questions.Coll.Find(db.User_Questions.Context, bson.M{}); err == nil {
+		defer uqCur.Close(db.User_Questions.Context)
+		for uqCur.Next(db.User_Questions.Context) {
+			var doc struct {
+				UserID any `bson:"userID"`
+			}
+			if err := uqCur.Decode(&doc); err == nil {
+				if id, ok := uidString(doc.UserID); ok {
+					uniq[id] = struct{}{}
+				}
+			}
+		}
+	}
+
 	if len(uniq) == 0 {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "No registered users found"})
 		return
@@ -192,24 +221,37 @@ func AssignShiftsAndQuestions(c *gin.Context) {
 		return
 	}
 	if len(bank) == 0 {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "No quiz questions found"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "No quiz questions found in question bank"})
 		return
 	}
 
-	existingCursor, err := db.User_Questions.Coll.Find(db.User_Questions.Context, bson.M{})
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to load existing user questions"})
-		return
-	}
-	defer existingCursor.Close(db.User_Questions.Context)
+	deletedOld := 0
 	existingUserIDs := make(map[string]struct{})
-	for existingCursor.Next(db.User_Questions.Context) {
-		var doc struct {
-			UserID any `bson:"userID"`
+	if req.ForceReassign {
+		// Delete current questions from user_questions collection
+		delRes, err := db.User_Questions.Coll.DeleteMany(db.User_Questions.Context, bson.M{})
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to delete existing papers: " + err.Error()})
+			return
 		}
-		if err := existingCursor.Decode(&doc); err == nil {
-			if id, ok := uidString(doc.UserID); ok {
-				existingUserIDs[id] = struct{}{}
+		if delRes != nil {
+			deletedOld = int(delRes.DeletedCount)
+		}
+	} else {
+		existingCursor, err := db.User_Questions.Coll.Find(db.User_Questions.Context, bson.M{})
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to load existing user questions"})
+			return
+		}
+		defer existingCursor.Close(db.User_Questions.Context)
+		for existingCursor.Next(db.User_Questions.Context) {
+			var doc struct {
+				UserID any `bson:"userID"`
+			}
+			if err := existingCursor.Decode(&doc); err == nil {
+				if id, ok := uidString(doc.UserID); ok {
+					existingUserIDs[id] = struct{}{}
+				}
 			}
 		}
 	}
@@ -227,9 +269,11 @@ func AssignShiftsAndQuestions(c *gin.Context) {
 	var newEntries []interface{}
 	skipped := 0
 	for idx, uid := range userIDs {
-		if _, exists := existingUserIDs[uid]; exists {
-			skipped++
-			continue
+		if !req.ForceReassign {
+			if _, exists := existingUserIDs[uid]; exists {
+				skipped++
+				continue
+			}
 		}
 		shift := (idx % req.NumShifts) + 1
 		newEntries = append(newEntries, models.UserQuestions{
@@ -264,6 +308,7 @@ func AssignShiftsAndQuestions(c *gin.Context) {
 		"message":          "Shifts and questions assigned",
 		"users_processed":  len(userIDs),
 		"created":          created,
+		"deleted_old":      deletedOld,
 		"skipped_existing": skipped,
 		"num_shifts":       req.NumShifts,
 	}
