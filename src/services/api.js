@@ -27,19 +27,27 @@ function normalizeOption(raw, questionIndex, optionIndex) {
     return { id: `q${questionIndex}-o${optionIndex}`, rawId: null, value: raw };
   }
   const rawId = pick(raw, "Id", "id", "option_id");
+  let value = pick(raw, "Value", "value", "option_value") ?? "";
+  if (typeof value === "string") {
+    value = value.replace(/\\r\\n/g, "\n").replace(/\\n/g, "\n");
+  }
   return {
     id: toKey(rawId, `q${questionIndex}-o${optionIndex}`),
     rawId: rawId ?? null,
-    value: pick(raw, "Value", "value", "option_value") ?? "",
+    value,
   };
 }
 
 function normalizeQuestion(raw, index) {
   const rawId = pick(raw, "QuestionID", "questionID", "questionId", "questionid");
+  let text = pick(raw, "Question", "question", "quizQuestions", "text") ?? "";
+  if (typeof text === "string") {
+    text = text.replace(/\\r\\n/g, "\n").replace(/\\n/g, "\n");
+  }
   return {
     id: toKey(rawId, `q${index}`),
     rawId: rawId ?? null,
-    text: pick(raw, "Question", "question", "quizQuestions", "text") ?? "",
+    text,
     image: pick(raw, "Image", "image", "image_url") ?? "",
     shift: pick(raw, "Shift", "shift") ?? null,
     options: (pick(raw, "Options", "options") ?? []).map((opt, optionIndex) =>

@@ -1,0 +1,92 @@
+[
+  {
+    "user_id_hex": "67ccf4787f6d5c",
+    "email": "ssharma1_be25@thapar.edu",
+    "total_answered": 1,
+    "total_correct": 0,
+    "total_wrong": 1,
+    "responses": [
+      {
+        "question_id_hex": "5b68e9af1aacf9",
+        "question_text": "Pipe A fills a tank in 10 hours, pipe B in 15 hours, and pipe C empties it in 30 hours. With all three open from empty, time to fill the tank:",
+        "selected_option_id_hex": "50f1e424bcb791",
+        "selected_option_value": "6 hours",
+        "correct_option_id_hex": "a2b6af0ca0a722",
+        "correct_option_value": "7.5 hours",
+        "is_correct": false
+      }
+    ]
+  },
+  {
+    "user_id_hex": "6069ad58eacc50",
+    "email": "rsharma4_be25@thapar.edu",
+    "total_answered": 7,
+    "total_correct": 5,
+    "total_wrong": 2,
+    "responses": [
+      {
+        "question_id_hex": "66558e04811616",
+        "question_text": "Array B = [3, 0, 4, 1, 5, 2] (indexing starts at 0).\ny = 0\nfor k from 1 to 3:\n    y = B[y]\nFinal value of y?",
+        "selected_option_id_hex": "8b1b02d69ee0a4",
+        "selected_option_value": "0",
+        "correct_option_id_hex": "8b1b02d69ee0a4",
+        "correct_option_value": "0",
+        "is_correct": true
+      },
+      {
+        "question_id_hex": "555f312f8538b6",
+        "question_text": "Eight people sit around a circular table facing the centre.\n- A sits second to the left of B.\n- C sits opposite A.\n- D sits second to the right of C.\n- E sits between A and D on the shorter arc.\n- F sits opposite E.\n\nWho sits opposite D?\n(From a person’s view facing centre, left is clockwise.)",
+        "selected_option_id_hex": "70b1b50ae25618",
+        "selected_option_value": "B",
+        "correct_option_id_hex": "70b1b50ae25618",
+        "correct_option_value": "B",
+        "is_correct": true
+      },
+      {
+        "question_id_hex": "39e962ae4c265c",
+        "question_text": "What does g(48, 18) return?\n\nfunction g(a, b):\n    x = a\n    y = b\n    while y != 0:\n        t = x % y\n        x = y\n        y = t\n    return (a * b) / x\n\n(`/` is integer division.)",
+        "selected_option_id_hex": "68de98d515039f",
+        "selected_option_value": "144",
+        "correct_option_id_hex": "68de98d515039f",
+        "correct_option_value": "144",
+        "is_correct": true
+      },
+      {
+        "question_id_hex": "5f3620d865ad38",
+        "question_text": "Assume integer division (fractional part discarded). What is printed?\n\nprint 25 - 25 / 5 % 3 * 4 + 2",
+        "selected_option_id_hex": "28f3a8f91fa95e",
+        "selected_option_value": "19",
+        "correct_option_id_hex": "28f3a8f91fa95e",
+        "correct_option_value": "19",
+        "is_correct": true
+      },
+      {
+        "question_id_hex": "14c014bf8344ed",
+        "question_text": "What does f(36, 24) return?\n\nfunction f(a, b):\n    x = a\n    y = b\n    while y != 0:\n        t = x % y\n        x = y\n        y = t\n    return (a * b) / x\n\n(`/` is integer division.)",
+        "selected_option_id_hex": "08f0bd59f09d0f",
+        "selected_option_value": "72",
+        "correct_option_id_hex": "08f0bd59f09d0f",
+        "correct_option_value": "72",
+        "is_correct": true
+      },
+      {
+        "question_id_hex": "978701f5587cbc",
+        "question_text": "Pipe A fills a tank in 12 hours, pipe B in 18 hours, and pipe C empties it in 36 hours. With all three open from empty, time to fill the tank:",
+        "selected_option_id_hex": "ec73f7f557a0f1",
+        "selected_option_value": "12 hours",
+        "correct_option_id_hex": "95a9433b33d7d3",
+        "correct_option_value": "9 hours",
+        "is_correct": false
+      },
+      {
+        "question_id_hex": "57d262fed57641",
+        "question_text": "A finishes a job in 12 days, B in 18 days. They work together 4 days, then A leaves. Extra days B needs alone:",
+        "selected_option_id_hex": "0cb947b21c05e2",
+        "selected_option_value": "10",
+        "correct_option_id_hex": "d3c611e5979362",
+        "correct_option_value": "8",
+        "is_correct": false
+      }
+    ]
+  }
+]

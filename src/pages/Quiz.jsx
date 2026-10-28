@@ -454,9 +454,9 @@ export default function Quiz() {
               </div>
 
               {/* Question Text */}
-              <p className="font-display text-lg md:text-xl font-semibold mb-6 text-[var(--ink)]">
+              <div className="font-display text-lg md:text-xl font-semibold mb-6 text-[var(--ink)] whitespace-pre-wrap break-words leading-relaxed">
                 {currentQuestion.text}
-              </p>
+              </div>
 
               {/* Optional per-question image (cloudinary link from the backend) */}
               {currentQuestion.image && (
@@ -494,7 +494,7 @@ export default function Quiz() {
                           <span className="w-2 h-2 rounded-full bg-white" />
                         )}
                       </span>
-                      <span>{opt.value}</span>
+                      <span className="whitespace-pre-wrap break-words">{opt.value}</span>
                     </button>
                   );
                 })}

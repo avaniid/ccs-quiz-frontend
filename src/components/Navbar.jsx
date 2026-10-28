@@ -22,7 +22,7 @@ export default function Navbar({ activePage }) {
         />
         {/* TINKER: Change brand text size using text-base, text-lg, text-xl, text-2xl */}
         <span className="font-display font-bold text-lg sm:text-xl text-[var(--ink)] tracking-tight">
-          creative computing society
+          Creative Computing Society
         </span>
       </Link>
 
